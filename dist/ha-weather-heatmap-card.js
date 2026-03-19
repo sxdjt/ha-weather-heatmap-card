@@ -1,4 +1,4 @@
-/* Last modified: 19-Mar-2026 00:17 */
+/* Last modified: 19-Mar-2026 00:26 */
 // Card CSS styles
 
 /**
@@ -2719,6 +2719,6 @@ window.customCards.push(
 
 console.info(
   '%c WEATHER-HEATMAP-CARD %c v' + VERSION + ' ',
-  'color: white; background: #1976D2; padding: 4px 8px; border-radius: 3px 0 0 3px; font-weight: bold;',
-  'color: #1976D2; background: white; padding: 4px 8px; border-radius: 0 3px 3px 0; border: 1px solid #1976D2;'
+  'color: black; background: #F2720C; font-weight: 600;',
+  'color: black; background: #00a5c9; font-weight: 600;'
 );
