@@ -740,13 +740,13 @@ export class SensorHeatmapCard extends HTMLElement {
       </div>
 
       ${this._error ? this._renderError() : ''}
-      ${this._isLoading ? this._renderLoading() : ''}
       ${this._processedData && !this._error ? this._renderGrid() : ''}
       ${this._processedData && !this._error && this._config.show_legend ? this._renderLegend() : ''}
       ${this._processedData && !this._error ? this._renderFooter() : ''}
     `;
 
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
+    this._content.classList.toggle('is-loading', !!this._isLoading);
 
     if (this._processedData) {
       this._content.style.setProperty('--days-count', this._config.days);

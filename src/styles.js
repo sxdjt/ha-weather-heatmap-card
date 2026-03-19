@@ -266,21 +266,14 @@ export function createStyleElement() {
       opacity: 0.8;
     }
 
-    /* Loading state */
-    .loading {
-      text-align: center;
-      padding: 32px;
-      color: var(--secondary-text-color);
+    /* Loading state - subtle opacity pulse on existing content, no layout shift */
+    .is-loading {
+      animation: loading-pulse 1.2s ease-in-out infinite;
     }
 
-    .loading-spinner {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border: 3px solid var(--divider-color);
-      border-top-color: var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    @keyframes loading-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
     }
 
     @keyframes spin {
