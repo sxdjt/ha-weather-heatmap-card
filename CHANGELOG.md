@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.2 (2026-03-19)
+
+### New Features
+
+- Added `fill_gaps_style` option: controls how forward-filled cells appear — `"dimmed"` (default: reduced opacity + dashed border) or `"none"` (identical to real data). Tooltips always label estimated values regardless of style.
+
+### Bug Fixes
+
+- `fill_gaps` and `fill_gaps_style` now apply to both temperature and wind speed cards (were temperature-only)
+- `data_source: auto` now always uses the statistics API — the minimum display bucket is 1 hour, making pre-aggregated statistics always the appropriate and more efficient source
+
 ## v1.0.1 (2026-03-19)
 
 ### Bug Fixes

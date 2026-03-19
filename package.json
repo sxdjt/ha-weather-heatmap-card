@@ -1,6 +1,6 @@
 {
   "name": "ha-weather-heatmap-card",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A Home Assistant Lovelace card displaying temperature or wind speed history as a color-coded heatmap",
   "type": "module",
   "main": "dist/ha-weather-heatmap-card.js",

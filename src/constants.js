@@ -125,4 +125,4 @@ export function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-export const VERSION = '1.0.1';
+export const VERSION = '1.0.2';
