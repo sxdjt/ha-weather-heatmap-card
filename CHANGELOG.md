@@ -1,25 +1,28 @@
 # Changelog
 
-## v1.0.0 (2026-03-18)
+## v1.0.0 (2026-03-19)
 
 Initial release - merged temperature and wind speed heatmap cards into a single component.
 
 ### Features
 
-- Single card type handles both temperature and wind speed sensors
+- Single card handles both temperature and wind speed sensors via `card_type`
 - `card_type: temperature` - all temperature heatmap features:
   - avg/min/max aggregation modes
-  - Fahrenheit and Celsius auto-detection
+  - Fahrenheit and Celsius auto-detection with matching default color scales
   - Configurable hour range (start_hour/end_hour)
   - Configurable decimal precision
   - Optional degree symbol display
-  - Gap filling (forward-fill)
+  - Gap filling: forward-fills last known value into empty past buckets only
+  - `show_month_year` toggle
 - `card_type: windspeed` - all wind speed heatmap features:
   - Max speed aggregation per bucket
   - Beaufort scale color defaults for mph, km/h, m/s, knots
   - Optional direction overlay (arrow, cardinal, degrees)
   - Auto-detection of wind unit from entity attributes
 - Visual editor with conditional field visibility - only relevant fields shown per card type
+- Data Aggregation section in editor with explanatory text distinguishing aggregation mode from statistic type
+- Compatible with Home Assistant 2026.3+ (uses ha-selector instead of deprecated mwc-list-item)
 - All color interpolation methods (RGB, Gamma, HSL, LAB)
 - Navigation controls (back/forward/current)
 - Long-term statistics support (data_source: statistics)
