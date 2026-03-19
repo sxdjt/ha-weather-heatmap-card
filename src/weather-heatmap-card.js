@@ -1,4 +1,4 @@
-// Sensor Heatmap Card - merged temperature and wind speed heatmap card
+// Weather Heatmap Card - merged temperature and wind speed heatmap card
 
 import { createStyleElement } from './styles.js';
 import {

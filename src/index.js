@@ -1,6 +1,6 @@
 // Entry point: register all custom elements and announce card to Home Assistant
 
-import { SensorHeatmapCard } from './sensor-heatmap-card.js';
+import { SensorHeatmapCard } from './weather-heatmap-card.js';
 import { SensorHeatmapCardEditor } from './editor.js';
 import { VERSION } from './constants.js';
 

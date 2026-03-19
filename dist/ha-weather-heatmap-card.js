@@ -1,4 +1,4 @@
-/* Last modified: 19-Mar-2026 00:43 */
+/* Last modified: 19-Mar-2026 00:44 */
 // Card CSS styles
 
 /**
@@ -1066,7 +1066,7 @@ function averageDirection(directions) {
   return Math.round(avgDeg);
 }
 
-// Sensor Heatmap Card - merged temperature and wind speed heatmap card
+// Weather Heatmap Card - merged temperature and wind speed heatmap card
 
 
 /**
