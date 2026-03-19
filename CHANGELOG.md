@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.1 (2026-03-19)
+
+### Bug Fixes
+
+- Fixed wind speed legend labels rendering as a concatenated string instead of positioned labels (missing `position:absolute`)
+- Replaced layout-shifting loading spinner with a subtle opacity pulse that preserves card dimensions during data fetch
+- Fixed `fill_gaps` forward-filling future (empty) time buckets — now only fills past buckets
+- Fixed `show_month_year` toggle missing from merged card
+
 ## v1.0.0 (2026-03-19)
 
 Initial release - merged temperature and wind speed heatmap cards into a single component.
