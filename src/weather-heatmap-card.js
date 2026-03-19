@@ -117,10 +117,6 @@ export class SensorHeatmapCard extends HTMLElement {
       if (config.statistic_type && !validStatTypes.includes(config.statistic_type)) {
         throw new Error(`statistic_type must be one of: ${validStatTypes.join(', ')}`);
       }
-      const validFillGapsStyles = ['dimmed', 'none'];
-      if (config.fill_gaps_style && !validFillGapsStyles.includes(config.fill_gaps_style)) {
-        throw new Error(`fill_gaps_style must be one of: ${validFillGapsStyles.join(', ')}`);
-      }
     }
 
     // Wind-only validations
@@ -129,6 +125,11 @@ export class SensorHeatmapCard extends HTMLElement {
       if (config.statistic_type && !validStatTypes.includes(config.statistic_type)) {
         throw new Error(`statistic_type must be one of: ${validStatTypes.join(', ')}`);
       }
+    }
+
+    const validFillGapsStyles = ['dimmed', 'none'];
+    if (config.fill_gaps_style && !validFillGapsStyles.includes(config.fill_gaps_style)) {
+      throw new Error(`fill_gaps_style must be one of: ${validFillGapsStyles.join(', ')}`);
     }
 
     // Validate cell sizing
@@ -701,6 +702,35 @@ export class SensorHeatmapCard extends HTMLElement {
       rows.push(row);
     }
 
+    // Optional gap filling: forward-fill last known value into empty past buckets per column.
+    // Future buckets (beyond "now") are intentionally left empty.
+    if (this._config.fill_gaps) {
+      const now = Date.now();
+      for (let colIndex = 0; colIndex < dates.length; colIndex++) {
+        let lastKnownSpeed = null;
+        let lastKnownDirection = null;
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          const cell = row.cells[colIndex];
+
+          const bucketTime = new Date(cell.date);
+          bucketTime.setHours(row.hour, 0, 0, 0);
+          const isFuture = bucketTime.getTime() > now;
+
+          if (cell.hasData) {
+            lastKnownSpeed = cell.speed;
+            lastKnownDirection = cell.direction;
+          } else if (!isFuture && lastKnownSpeed !== null) {
+            cell.speed = lastKnownSpeed;
+            cell.direction = lastKnownDirection;
+            cell.hasData = true;
+            cell.isFilled = true;
+            allSpeeds.push(cell.speed);
+          }
+        }
+      }
+    }
+
     const stats = {
       min: allSpeeds.length > 0 ? Math.min(...allSpeeds) : 0,
       max: allSpeeds.length > 0 ? Math.max(...allSpeeds) : 0,
@@ -902,17 +932,24 @@ export class SensorHeatmapCard extends HTMLElement {
       : '';
     const partialIndicator = cell.isPartial ? '*' : '';
     const partialLabel = cell.isPartial ? ' (in progress)' : '';
+    const filledLabel = cell.isFilled ? ' (estimated)' : '';
+
+    let cellClass = 'cell';
+    if (cell.isPartial) cellClass += ' partial';
+    // Apply filled styling only when fill_gaps_style is 'dimmed' (default); 'none' renders like real data
+    if (cell.isFilled && this._config.fill_gaps_style !== 'none') cellClass += ' filled';
 
     return `
-      <div class="cell${cell.isPartial ? ' partial' : ''}"
+      <div class="${cellClass}"
            style="background-color: ${bgColor}; color: ${textColor}"
            data-value="${cell.speed}"
            data-direction="${cell.direction !== null ? cell.direction : ''}"
            data-date="${cell.date.toISOString()}"
            data-partial="${cell.isPartial ? 'true' : 'false'}"
+           data-filled="${cell.isFilled ? 'true' : 'false'}"
            tabindex="0"
            role="button"
-           aria-label="Wind speed ${cell.speed.toFixed(1)}${partialLabel}">
+           aria-label="Wind speed ${cell.speed.toFixed(1)}${partialLabel}${filledLabel}">
         <span class="value">${cell.speed.toFixed(1)}${partialIndicator}</span>
         ${directionStr ? `<span class="direction">${directionStr}</span>` : ''}
       </div>
