@@ -75,51 +75,51 @@ entity: sensor.wind_speed
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `card_type` | string | `"temperature"` | Card mode: `"temperature"` or `"windspeed"` |
 | `entity` | string | **Required** | Sensor entity ID |
-| `title` | string | | Card title |
-| `days` | number | `7` | Number of days to display (1-365) |
-| `time_interval` | number | `2` | Hours per row (1-24) |
-| `time_format` | string | `"24"` | Time format: `"12"` or `"24"` |
-| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"` |
 | `aggregation_mode` | string | `"average"` | How history readings are combined per cell: `"average"`, `"min"`, or `"max"` |
-| `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |
-| `refresh_interval` | number | `300` | Refresh interval in seconds |
-| `click_action` | string | `"more-info"` | Cell click: `"more-info"`, `"tooltip"`, or `"none"` |
-| `show_entity_name` | boolean | `false` | Show entity name in footer |
-| `show_month_year` | boolean | `true` | Show month/year label above the grid |
-| `show_legend` | boolean | `false` | Show color legend bar |
-| `cell_height` | number/string | `36` | Cell height in pixels |
-| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.) |
-| `cell_padding` | number/string | `2` | Padding inside cells |
-| `cell_gap` | number/string | `2` | Gap between cells |
+| `card_type` | string | `"temperature"` | Card mode: `"temperature"` or `"windspeed"` |
 | `cell_font_size` | number/string | `11` | Cell font size |
-| `compact` | boolean | `false` | Compact preset (overrides cell sizing) |
-| `compact_header` | boolean | `false` | Reduce header/footer padding and nav size |
-| `rounded_corners` | boolean | `true` | Rounded cell corners |
-| `interpolate_colors` | boolean | `false` | Smooth color gradient between thresholds |
+| `cell_gap` | number/string | `2` | Gap between cells |
+| `cell_height` | number/string | `36` | Cell height in pixels |
+| `cell_padding` | number/string | `2` | Padding inside cells |
+| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.) |
+| `click_action` | string | `"more-info"` | Cell click: `"more-info"`, `"tooltip"`, or `"none"` |
 | `color_interpolation` | string | `"hsl"` | Interpolation method: `"rgb"`, `"gamma"`, `"hsl"`, or `"lab"` |
 | `color_thresholds` | array | See below | Custom color mapping |
+| `compact` | boolean | `false` | Compact preset (overrides cell sizing) |
+| `compact_header` | boolean | `false` | Reduce header/footer padding and nav size |
+| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"` |
+| `days` | number | `7` | Number of days to display (1-365) |
+| `interpolate_colors` | boolean | `false` | Smooth color gradient between thresholds |
+| `refresh_interval` | number | `300` | Refresh interval in seconds |
+| `rounded_corners` | boolean | `true` | Rounded cell corners |
+| `show_entity_name` | boolean | `false` | Show entity name in footer |
+| `show_legend` | boolean | `false` | Show color legend bar |
+| `show_month_year` | boolean | `true` | Show month/year label above the grid |
+| `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |
+| `time_format` | string | `"24"` | Time format: `"12"` or `"24"` |
+| `time_interval` | number | `2` | Hours per row (1-24) |
+| `title` | string | | Card title |
 
 ### Temperature-Only Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `start_hour` | number | `0` | First hour to display (0-23) |
-| `end_hour` | number | `23` | Last hour to display (0-23) |
 | `decimals` | number | `1` | Decimal places shown (0-2) |
-| `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
-| `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
+| `end_hour` | number | `23` | Last hour to display (0-23) |
 | `fill_gaps` | boolean | `false` | Forward-fill last known value into empty past cells. **NOTE:** displays carried-forward data where none exists — use with care |
+| `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
+| `start_hour` | number | `0` | First hour to display (0-23) |
+| `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
 
 ### Wind Speed-Only Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `direction_entity` | string | | Entity ID for wind direction sensor |
-| `unit` | string | auto-detect | Override unit (`"mph"`, `"km/h"`, `"m/s"`, `"kn"`) |
-| `show_direction` | boolean | `true` | Show direction overlay on cells |
 | `direction_format` | string | `"arrow"` | Direction display: `"arrow"`, `"cardinal"`, or `"degrees"` |
+| `show_direction` | boolean | `true` | Show direction overlay on cells |
+| `unit` | string | auto-detect | Override unit (`"mph"`, `"km/h"`, `"m/s"`, `"kn"`) |
 
 ## Default Color Thresholds
 
