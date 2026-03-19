@@ -1,4 +1,4 @@
-/* Last modified: 19-Mar-2026 00:36 */
+/* Last modified: 19-Mar-2026 00:43 */
 // Card CSS styles
 
 /**
@@ -1987,7 +1987,7 @@ class SensorHeatmapCard extends HTMLElement {
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
         const isLast = i === thresholds.length - 1;
-        return `<span style="left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
       }).join('');
 
       return `

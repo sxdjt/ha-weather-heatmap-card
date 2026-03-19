@@ -938,7 +938,7 @@ export class SensorHeatmapCard extends HTMLElement {
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
         const isLast = i === thresholds.length - 1;
-        return `<span style="left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
       }).join('');
 
       return `
