@@ -117,6 +117,10 @@ export class SensorHeatmapCard extends HTMLElement {
       if (config.statistic_type && !validStatTypes.includes(config.statistic_type)) {
         throw new Error(`statistic_type must be one of: ${validStatTypes.join(', ')}`);
       }
+      const validFillGapsStyles = ['dimmed', 'none'];
+      if (config.fill_gaps_style && !validFillGapsStyles.includes(config.fill_gaps_style)) {
+        throw new Error(`fill_gaps_style must be one of: ${validFillGapsStyles.join(', ')}`);
+      }
     }
 
     // Wind-only validations
@@ -208,6 +212,7 @@ export class SensorHeatmapCard extends HTMLElement {
       end_hour: config.end_hour !== undefined ? config.end_hour : 23,
       show_degree_symbol: config.show_degree_symbol !== false,
       fill_gaps: config.fill_gaps || false,
+      fill_gaps_style: config.fill_gaps_style || 'dimmed',
 
       // --- Wind-only options ---
       direction_entity: config.direction_entity || null,
@@ -330,8 +335,8 @@ export class SensorHeatmapCard extends HTMLElement {
     const source = this._config.data_source;
     if (source === 'history') return 'history';
     if (source === 'statistics') return 'statistics';
-    // Auto: prefer statistics for historical navigation, history for current view
-    return this._viewOffset < 0 ? 'statistics' : 'history';
+    // Auto: always use statistics - minimum bucket is 1 hour, so pre-aggregated stats are always appropriate
+    return 'statistics';
   }
 
   // Fetch historical data from Home Assistant
@@ -862,7 +867,8 @@ export class SensorHeatmapCard extends HTMLElement {
 
     let cellClass = 'cell';
     if (cell.isPartial) cellClass += ' partial';
-    if (cell.isFilled) cellClass += ' filled';
+    // Apply filled styling only when fill_gaps_style is 'dimmed' (default); 'none' renders like real data
+    if (cell.isFilled && this._config.fill_gaps_style !== 'none') cellClass += ' filled';
 
     return `
       <div class="${cellClass}"
