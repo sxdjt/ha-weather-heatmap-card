@@ -8,6 +8,8 @@ A custom Home Assistant Lovelace card that displays temperature or wind speed da
 
 Replaces and supersedes the separate [Temperature Heatmap Card](https://github.com/sxdjt/ha-temperature-heatmap) and [Windspeed Heatmap Card](https://github.com/sxdjt/ha-windspeed-heatmap). Existing configurations using the legacy element names (`ha-temperature-heatmap-card`, `windspeed-heatmap-card`) continue to work without changes.
 
+<img width="800" height="602" alt="example" src="https://github.com/user-attachments/assets/3b97d750-5037-45f5-a74a-7842b99564dc" />
+
 ## Features
 
 - Single card handles both temperature and wind speed sensors via `card_type`
