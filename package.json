@@ -1,0 +1,25 @@
+{
+  "name": "ha-weather-heatmap-card",
+  "version": "1.0.0",
+  "description": "A Home Assistant Lovelace card displaying temperature or wind speed history as a color-coded heatmap",
+  "type": "module",
+  "main": "dist/ha-weather-heatmap-card.js",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c --watch"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "custom-card",
+    "temperature",
+    "wind-speed",
+    "heatmap",
+    "weather"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.9.6"
+  }
+}
