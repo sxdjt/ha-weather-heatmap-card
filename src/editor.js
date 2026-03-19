@@ -341,16 +341,23 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     if (key === 'unit_temp' || key === 'unit_wind') configKey = 'unit';
     if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
-    const newConfig = { ...this._config, [configKey]: value };
-    this._config = newConfig;
+    const updated = { ...this._config, [configKey]: value };
+    this._config = updated;
 
     // Update field visibility whenever card_type changes
     if (key === 'card_type') {
       this._updateFieldVisibility();
     }
 
+    // Reconstruct with type and card_type first so YAML view has them at the top
+    const { type, card_type, ...rest } = updated;
+    const ordered = {};
+    if (type !== undefined) ordered.type = type;
+    if (card_type !== undefined) ordered.card_type = card_type;
+    Object.assign(ordered, rest);
+
     this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: newConfig },
+      detail: { config: ordered },
       bubbles: true,
       composed: true,
     }));
