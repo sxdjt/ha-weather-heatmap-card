@@ -1,4 +1,4 @@
-/* Last modified: 19-Mar-2026 15:45 */
+/* Last modified: 19-Mar-2026 20:38 */
 // Card CSS styles
 
 /**
@@ -2712,8 +2712,10 @@ class SensorHeatmapCardEditor extends HTMLElement {
 // Entry point: register all custom elements and announce card to Home Assistant
 
 
-// Register the primary element name
-customElements.define('ha-weather-heatmap-card', SensorHeatmapCard);
+// Register the primary element name - guard prevents DOMException on duplicate load
+if (!customElements.get('ha-weather-heatmap-card')) {
+  customElements.define('ha-weather-heatmap-card', SensorHeatmapCard);
+}
 
 // Register legacy element names for backward compatibility.
 // The Custom Elements registry requires a unique constructor per tag name, so

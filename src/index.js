@@ -4,8 +4,10 @@ import { SensorHeatmapCard } from './weather-heatmap-card.js';
 import { SensorHeatmapCardEditor } from './editor.js';
 import { VERSION } from './constants.js';
 
-// Register the primary element name
-customElements.define('ha-weather-heatmap-card', SensorHeatmapCard);
+// Register the primary element name - guard prevents DOMException on duplicate load
+if (!customElements.get('ha-weather-heatmap-card')) {
+  customElements.define('ha-weather-heatmap-card', SensorHeatmapCard);
+}
 
 // Register legacy element names for backward compatibility.
 // The Custom Elements registry requires a unique constructor per tag name, so
