@@ -1,4 +1,4 @@
-/* Last modified: 19-Mar-2026 20:38 */
+/* Last modified: 25-Mar-2026 22:41 */
 // Card CSS styles
 
 /**
@@ -466,6 +466,18 @@ const DEFAULT_THRESHOLDS_C = [
   { value: 24,  color: '#ffeb3b' },  // 24C: Getting warm (yellow)
   { value: 27,  color: '#ff9800' },  // 27C: Warm (orange)
   { value: 29,  color: '#f44336' }   // 29C: Hot (red)
+];
+
+// --- Humidity thresholds (percentage, 0-100%) ---
+// Colors mirror the temperature scale palette: same greens, yellows, oranges, and reds.
+const DEFAULT_THRESHOLDS_HUMIDITY = [
+  { value: 0,  color: '#fff176' },  // 0%: Very dry (pale yellow)
+  { value: 15, color: '#ffee58' },  // 15%: Dry (yellow)
+  { value: 30, color: '#4caf50' },  // 30%: Comfortable low (green) - matches temp 60F/16C
+  { value: 45, color: '#81c784' },  // 45%: Comfortable (light green) - matches temp 70F/21C
+  { value: 55, color: '#ffeb3b' },  // 55%: Getting humid (yellow) - matches temp 75F/24C
+  { value: 65, color: '#ff9800' },  // 65%: Humid (orange) - matches temp 80F/27C
+  { value: 80, color: '#f44336' },  // 80%: Very humid (red) - matches temp 85F/29C
 ];
 
 // --- Wind speed thresholds based on Beaufort scale ---
@@ -1116,8 +1128,8 @@ class SensorHeatmapCard extends HTMLElement {
       card_type = tag === 'windspeed-heatmap-card' ? 'windspeed' : 'temperature';
     }
 
-    if (!['temperature', 'windspeed'].includes(card_type)) {
-      throw new Error("card_type must be 'temperature' or 'windspeed'");
+    if (!['temperature', 'windspeed', 'humidity'].includes(card_type)) {
+      throw new Error("card_type must be 'temperature', 'windspeed', or 'humidity'");
     }
 
     // Validate time_interval
@@ -1140,14 +1152,16 @@ class SensorHeatmapCard extends HTMLElement {
       throw new Error(`data_source must be one of: ${validDataSources.join(', ')}`);
     }
 
-    // Temperature-only validations
-    if (card_type === 'temperature') {
+    // Decimals applies to all card types
+    if (config.decimals !== undefined && (config.decimals < 0 || config.decimals > 2)) {
+      throw new Error('decimals must be between 0 and 2');
+    }
+
+    // Temperature and humidity share the same validation rules
+    if (card_type === 'temperature' || card_type === 'humidity') {
       const validAggregations = ['average', 'min', 'max'];
       if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
         throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
-      }
-      if (config.decimals !== undefined && (config.decimals < 0 || config.decimals > 2)) {
-        throw new Error('decimals must be between 0 and 2');
       }
       if (config.start_hour !== undefined && (!Number.isInteger(config.start_hour) || config.start_hour < 0 || config.start_hour > 23)) {
         throw new Error('start_hour must be an integer between 0 and 23');
@@ -1200,7 +1214,9 @@ class SensorHeatmapCard extends HTMLElement {
     const hasCustomThresholds = config.color_thresholds && config.color_thresholds.length > 0;
 
     // Default title based on type
-    const defaultTitle = card_type === 'windspeed' ? 'Wind Speed History' : 'Temperature History';
+    const defaultTitle = card_type === 'windspeed' ? 'Wind Speed History'
+      : card_type === 'humidity' ? 'Humidity History'
+      : 'Temperature History';
 
     // Build configuration with defaults
     this._config = {
@@ -1250,7 +1266,8 @@ class SensorHeatmapCard extends HTMLElement {
 
       // --- Temperature-only options ---
       aggregation_mode: config.aggregation_mode || 'average',
-      decimals: config.decimals !== undefined ? config.decimals : 1,
+      // Humidity sensors typically report integer percentages; temperature defaults to 1 decimal
+      decimals: config.decimals !== undefined ? config.decimals : (card_type === 'humidity' ? 0 : 1),
       start_hour: config.start_hour !== undefined ? config.start_hour : 0,
       end_hour: config.end_hour !== undefined ? config.end_hour : 23,
       show_degree_symbol: config.show_degree_symbol !== false,
@@ -1263,8 +1280,9 @@ class SensorHeatmapCard extends HTMLElement {
       direction_format: config.direction_format || 'arrow',
 
       // Internal: track wind threshold auto-detection state
+      // Humidity and temperature thresholds are fixed at config time; only wind needs runtime unit detection
       _hasCustomThresholds: hasCustomThresholds,
-      _thresholdsInitialized: card_type === 'temperature' || !!config.unit || hasCustomThresholds,
+      _thresholdsInitialized: card_type !== 'windspeed' || !!config.unit || hasCustomThresholds,
 
       // Color thresholds
       color_thresholds: hasCustomThresholds
@@ -1284,6 +1302,9 @@ class SensorHeatmapCard extends HTMLElement {
   _defaultThresholdsForConfig(card_type, unit) {
     if (card_type === 'windspeed') {
       return getWindThresholdsForUnit(unit).slice();
+    }
+    if (card_type === 'humidity') {
+      return DEFAULT_THRESHOLDS_HUMIDITY.slice();
     }
     return getTemperatureThresholdsForUnit(unit).slice();
   }
@@ -1867,11 +1888,12 @@ class SensorHeatmapCard extends HTMLElement {
   }
 
   _renderLoading() {
-    const isWind = this._config.card_type === 'windspeed';
+    const type = this._config.card_type;
+    const label = type === 'windspeed' ? 'wind' : type === 'humidity' ? 'humidity' : 'temperature';
     return `
       <div class="loading">
         <div class="loading-spinner"></div>
-        <div style="margin-top: 8px;">Loading ${isWind ? 'wind' : 'temperature'} data...</div>
+        <div style="margin-top: 8px;">Loading ${label} data...</div>
       </div>
     `;
   }
@@ -1991,8 +2013,8 @@ class SensorHeatmapCard extends HTMLElement {
            data-filled="${cell.isFilled ? 'true' : 'false'}"
            tabindex="0"
            role="button"
-           aria-label="Wind speed ${cell.speed.toFixed(1)}${partialLabel}${filledLabel}">
-        <span class="value">${cell.speed.toFixed(1)}${partialIndicator}</span>
+           aria-label="Wind speed ${cell.speed.toFixed(this._config.decimals)}${partialLabel}${filledLabel}">
+        <span class="value">${cell.speed.toFixed(this._config.decimals)}${partialIndicator}</span>
         ${directionStr ? `<span class="direction">${directionStr}</span>` : ''}
       </div>
     `;
@@ -2085,9 +2107,7 @@ class SensorHeatmapCard extends HTMLElement {
   _renderFooter() {
     const { stats } = this._processedData;
     const unit = this._getUnit();
-    const isWind = this._config.card_type === 'windspeed';
-    // Temperature uses configurable decimal places; wind always shows 1 decimal
-    const decimals = isWind ? 1 : this._config.decimals;
+    const decimals = this._config.decimals;
 
     let entityName = '';
     if (this._config.show_entity_name) {
@@ -2110,6 +2130,11 @@ class SensorHeatmapCard extends HTMLElement {
 
   // Get unit of measurement, handling degree symbol option for temperature
   _getUnit() {
+    // Humidity is always percent — no auto-detection or config override needed
+    if (this._config.card_type === 'humidity') {
+      return '%';
+    }
+
     let unit;
 
     if (this._config.unit) {
@@ -2363,7 +2388,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
     const fields = [
       // Card type selector - always visible, drives field visibility
       { type: 'select', key: 'card_type', label: 'Card Type',
-        options: { temperature: 'Temperature', windspeed: 'Wind Speed' } },
+        options: { temperature: 'Temperature', windspeed: 'Wind Speed', humidity: 'Humidity' } },
 
       // Common fields
       { type: 'entity', key: 'entity', label: 'Entity', required: true },
@@ -2388,10 +2413,10 @@ class SensorHeatmapCardEditor extends HTMLElement {
           '(HA records mean, max, and min per hour — used when data is older than your recorder history).'
         } },
       { type: 'select', key: 'aggregation_mode', label: 'Aggregation Mode',
-        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: 'temperature' },
+        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity'] },
       // Virtual keys: both write to 'statistic_type' in config with different option sets per card type
       { type: 'select', key: 'statistic_type_temp', label: 'Statistic Type',
-        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: 'temperature' },
+        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity'] },
       { type: 'select', key: 'statistic_type_wind', label: 'Statistic Type',
         options: { 'max': 'Maximum', 'mean': 'Average (mean)', 'min': 'Minimum' }, showWhen: 'windspeed' },
 
@@ -2413,15 +2438,15 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'select', key: 'color_interpolation', label: 'Color Interpolation',
         options: { rgb: 'RGB', gamma: 'Gamma RGB', hsl: 'HSL', lab: 'LAB' } },
 
+      // Temperature and humidity shared fields
+      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
+      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
+      { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2 },
+      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity'] },
       // Temperature-only fields
-      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: 'temperature' },
-      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: 'temperature' },
-      { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2, showWhen: 'temperature' },
-      // Virtual key: writes to 'unit' in config, temperature unit options
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
-      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: 'temperature' },
 
       // Wind-only fields
       { type: 'entity', key: 'direction_entity', label: 'Wind Direction Entity', showWhen: 'windspeed' },
@@ -2442,13 +2467,17 @@ class SensorHeatmapCardEditor extends HTMLElement {
     this._updateFieldVisibility();
   }
 
-  // Show or hide conditional fields based on current card_type
+  // Show or hide conditional fields based on current card_type.
+  // showWhen can be a string (single type) or array (multiple types).
   _updateFieldVisibility() {
     const cardType = this._config.card_type || 'temperature';
     for (const key in this.fields) {
       const field = this.fields[key];
       if (!field.showWhen) continue;  // Always-visible fields have no showWhen
-      field.wrapper.style.display = field.showWhen === cardType ? '' : 'none';
+      const visible = Array.isArray(field.showWhen)
+        ? field.showWhen.includes(cardType)
+        : field.showWhen === cardType;
+      field.wrapper.style.display = visible ? '' : 'none';
     }
   }
 

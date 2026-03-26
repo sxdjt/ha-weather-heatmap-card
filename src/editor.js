@@ -115,7 +115,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     const fields = [
       // Card type selector - always visible, drives field visibility
       { type: 'select', key: 'card_type', label: 'Card Type',
-        options: { temperature: 'Temperature', windspeed: 'Wind Speed' } },
+        options: { temperature: 'Temperature', windspeed: 'Wind Speed', humidity: 'Humidity' } },
 
       // Common fields
       { type: 'entity', key: 'entity', label: 'Entity', required: true },
@@ -140,10 +140,10 @@ export class SensorHeatmapCardEditor extends HTMLElement {
           '(HA records mean, max, and min per hour — used when data is older than your recorder history).'
         } },
       { type: 'select', key: 'aggregation_mode', label: 'Aggregation Mode',
-        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: 'temperature' },
+        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity'] },
       // Virtual keys: both write to 'statistic_type' in config with different option sets per card type
       { type: 'select', key: 'statistic_type_temp', label: 'Statistic Type',
-        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: 'temperature' },
+        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity'] },
       { type: 'select', key: 'statistic_type_wind', label: 'Statistic Type',
         options: { 'max': 'Maximum', 'mean': 'Average (mean)', 'min': 'Minimum' }, showWhen: 'windspeed' },
 
@@ -165,15 +165,15 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'select', key: 'color_interpolation', label: 'Color Interpolation',
         options: { rgb: 'RGB', gamma: 'Gamma RGB', hsl: 'HSL', lab: 'LAB' } },
 
+      // Temperature and humidity shared fields
+      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
+      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
+      { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2 },
+      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity'] },
       // Temperature-only fields
-      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: 'temperature' },
-      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: 'temperature' },
-      { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2, showWhen: 'temperature' },
-      // Virtual key: writes to 'unit' in config, temperature unit options
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
-      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: 'temperature' },
 
       // Wind-only fields
       { type: 'entity', key: 'direction_entity', label: 'Wind Direction Entity', showWhen: 'windspeed' },
@@ -194,13 +194,17 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     this._updateFieldVisibility();
   }
 
-  // Show or hide conditional fields based on current card_type
+  // Show or hide conditional fields based on current card_type.
+  // showWhen can be a string (single type) or array (multiple types).
   _updateFieldVisibility() {
     const cardType = this._config.card_type || 'temperature';
     for (const key in this.fields) {
       const field = this.fields[key];
       if (!field.showWhen) continue;  // Always-visible fields have no showWhen
-      field.wrapper.style.display = field.showWhen === cardType ? '' : 'none';
+      const visible = Array.isArray(field.showWhen)
+        ? field.showWhen.includes(cardType)
+        : field.showWhen === cardType;
+      field.wrapper.style.display = visible ? '' : 'none';
     }
   }
 
