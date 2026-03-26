@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 (2026-03-25)
+
+### New Features
+
+- Added `card_type: 'generic'` — displays any numeric sensor as a heatmap. No default color scale is provided; configure `color_thresholds` for your sensor's value range. Supports all standard options: aggregation mode, hour filtering, gap filling, statistics, and decimal precision.
+
 ## v1.1.0 (2026-03-25)
 
 ### New Features

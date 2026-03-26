@@ -312,6 +312,11 @@ export function getColorForValue(value, thresholds, interpolate = false, interpo
     return 'var(--disabled-color, #f0f0f0)';
   }
 
+  // No thresholds defined - return a neutral default (generic card type with no color config)
+  if (!thresholds || thresholds.length === 0) {
+    return 'var(--secondary-background-color, #e0e0e0)';
+  }
+
   if (!interpolate) {
     // Threshold-based: use highest threshold that the value meets or exceeds
     let color = thresholds[0].color;

@@ -115,7 +115,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     const fields = [
       // Card type selector - always visible, drives field visibility
       { type: 'select', key: 'card_type', label: 'Card Type',
-        options: { temperature: 'Temperature', windspeed: 'Wind Speed', humidity: 'Humidity' } },
+        options: { temperature: 'Temperature', windspeed: 'Wind Speed', humidity: 'Humidity', generic: 'Generic' } },
 
       // Common fields
       { type: 'entity', key: 'entity', label: 'Entity', required: true },
@@ -140,10 +140,10 @@ export class SensorHeatmapCardEditor extends HTMLElement {
           '(HA records mean, max, and min per hour — used when data is older than your recorder history).'
         } },
       { type: 'select', key: 'aggregation_mode', label: 'Aggregation Mode',
-        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity'] },
+        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity', 'generic'] },
       // Virtual keys: both write to 'statistic_type' in config with different option sets per card type
       { type: 'select', key: 'statistic_type_temp', label: 'Statistic Type',
-        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity'] },
+        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'select', key: 'statistic_type_wind', label: 'Statistic Type',
         options: { 'max': 'Maximum', 'mean': 'Average (mean)', 'min': 'Minimum' }, showWhen: 'windspeed' },
 
@@ -166,14 +166,17 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         options: { rgb: 'RGB', gamma: 'Gamma RGB', hsl: 'HSL', lab: 'LAB' } },
 
       // Temperature and humidity shared fields
-      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
-      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity'] },
+      { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
+      { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2 },
-      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity'] },
+      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity', 'generic'] },
       // Temperature-only fields
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
+
+      // Generic-only fields
+      { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },
 
       // Wind-only fields
       { type: 'entity', key: 'direction_entity', label: 'Wind Direction Entity', showWhen: 'windspeed' },
@@ -341,8 +344,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   _onFieldChange(key, value) {
     let configKey = key;
 
-    // Virtual key mapping: both variants write to the same real config key
-    if (key === 'unit_temp' || key === 'unit_wind') configKey = 'unit';
+    // Virtual key mapping: all variants write to the same real config key
+    if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
     if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
     const updated = { ...this._config, [configKey]: value };
@@ -383,7 +386,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
       // Map virtual keys to the real config key for reading
       let configKey = key;
-      if (key === 'unit_temp' || key === 'unit_wind') configKey = 'unit';
+      if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
       if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
       const value = this._config[configKey];

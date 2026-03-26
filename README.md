@@ -4,7 +4,7 @@
 [![AI Assisted](https://img.shields.io/badge/AI-Claude%20Code-AAAAAA.svg?style=for-the-badge)](https://claude.ai/code)
 ![GitHub License](https://img.shields.io/github/license/sxdjt/ha-weather-heatmap-card?style=for-the-badge)
 
-A custom Home Assistant Lovelace card that displays temperature, wind speed, or humidity data as a color-coded heatmap, showing hourly patterns across multiple days. A single card handles all sensor types via the `card_type` configuration option.
+A custom Home Assistant Lovelace card that displays sensor data as a color-coded heatmap, showing hourly patterns across multiple days. A single card handles temperature, wind speed, humidity, and any other numeric sensor via the `card_type` configuration option.
 
 Replaces and supersedes the separate [Temperature Heatmap Card](https://github.com/sxdjt/ha-temperature-heatmap) and [Windspeed Heatmap Card](https://github.com/sxdjt/ha-windspeed-heatmap). Existing configurations using the legacy element names (`ha-temperature-heatmap-card`, `windspeed-heatmap-card`) continue to work without changes.
 
@@ -12,7 +12,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 
 ## Features
 
-- Single card handles temperature, wind speed, and humidity sensors via `card_type`
+- Single card handles temperature, wind speed, humidity, and any numeric sensor via `card_type`
 - Visual configuration editor with context-sensitive fields
 - Color interpolation with multiple methods (RGB, HSL, LAB, Gamma)
 - Configurable time periods (1-365 days) and intervals (1-24 hours)
@@ -39,6 +39,11 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Comfort-based color scale: yellow for dry (0-30%), green for comfortable (30-50%), yellow/orange/red for humid (above 55%)
 - Fixed % unit — no configuration needed
 - Shares temperature's aggregation, hour filtering, and gap filling options
+
+**Generic mode** (`card_type: generic`):
+- Accepts any numeric sensor (CO2, light level, pressure, power, etc.)
+- No default color scale — configure `color_thresholds` for your sensor's value range
+- Shares all standard options: aggregation, hour filtering, gap filling, statistics
 
 ## Installation
 
@@ -67,6 +72,18 @@ card_type: humidity
 entity: sensor.outdoor_humidity
 ```
 
+```yaml
+type: custom:ha-weather-heatmap-card
+card_type: generic
+entity: sensor.indoor_co2
+unit: ppm
+color_thresholds:
+  - { value: 400,  color: "#4caf50" }
+  - { value: 800,  color: "#ffeb3b" }
+  - { value: 1200, color: "#ff9800" }
+  - { value: 1500, color: "#f44336" }
+```
+
 ### Migrating from legacy cards
 
 No changes required. Legacy element names continue to work:
@@ -90,7 +107,7 @@ entity: sensor.wind_speed
 |--------|------|---------|-------------|
 | `entity` | string | **Required** | Sensor entity ID |
 | `aggregation_mode` | string | `"average"` | How history readings are combined per cell: `"average"`, `"min"`, or `"max"` |
-| `card_type` | string | `"temperature"` | Card mode: `"temperature"`, `"windspeed"`, or `"humidity"` |
+| `card_type` | string | `"temperature"` | Card mode: `"temperature"`, `"windspeed"`, `"humidity"`, or `"generic"` |
 | `cell_font_size` | number/string | `11` | Cell font size |
 | `cell_gap` | number/string | `2` | Gap between cells |
 | `cell_height` | number/string | `36` | Cell height in pixels |
@@ -130,6 +147,14 @@ entity: sensor.wind_speed
 |--------|------|---------|-------------|
 | `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
 | `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
+
+### Generic Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `color_thresholds` | array | none | **Required for useful output.** Define value-to-color mappings for your sensor's range |
+| `decimals` | number | `1` | Decimal places shown (0-2) |
+| `unit` | string | | Unit label shown in cells and tooltips (e.g. `"ppm"`, `"lux"`, `"W"`) |
 
 ### Wind Speed Options
 

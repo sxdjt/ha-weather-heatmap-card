@@ -75,8 +75,8 @@ export class SensorHeatmapCard extends HTMLElement {
       card_type = tag === 'windspeed-heatmap-card' ? 'windspeed' : 'temperature';
     }
 
-    if (!['temperature', 'windspeed', 'humidity'].includes(card_type)) {
-      throw new Error("card_type must be 'temperature', 'windspeed', or 'humidity'");
+    if (!['temperature', 'windspeed', 'humidity', 'generic'].includes(card_type)) {
+      throw new Error("card_type must be 'temperature', 'windspeed', 'humidity', or 'generic'");
     }
 
     // Validate time_interval
@@ -104,8 +104,8 @@ export class SensorHeatmapCard extends HTMLElement {
       throw new Error('decimals must be between 0 and 2');
     }
 
-    // Temperature and humidity share the same validation rules
-    if (card_type === 'temperature' || card_type === 'humidity') {
+    // Temperature, humidity, and generic share the same validation rules
+    if (card_type === 'temperature' || card_type === 'humidity' || card_type === 'generic') {
       const validAggregations = ['average', 'min', 'max'];
       if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
         throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
@@ -163,6 +163,7 @@ export class SensorHeatmapCard extends HTMLElement {
     // Default title based on type
     const defaultTitle = card_type === 'windspeed' ? 'Wind Speed History'
       : card_type === 'humidity' ? 'Humidity History'
+      : card_type === 'generic' ? 'Sensor History'
       : 'Temperature History';
 
     // Build configuration with defaults
@@ -252,6 +253,10 @@ export class SensorHeatmapCard extends HTMLElement {
     }
     if (card_type === 'humidity') {
       return DEFAULT_THRESHOLDS_HUMIDITY.slice();
+    }
+    if (card_type === 'generic') {
+      // No default color scale - user must configure thresholds for their specific sensor
+      return [];
     }
     return getTemperatureThresholdsForUnit(unit).slice();
   }
