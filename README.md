@@ -4,7 +4,7 @@
 [![AI Assisted](https://img.shields.io/badge/AI-Claude%20Code-AAAAAA.svg?style=for-the-badge)](https://claude.ai/code)
 ![GitHub License](https://img.shields.io/github/license/sxdjt/ha-weather-heatmap-card?style=for-the-badge)
 
-A custom Home Assistant Lovelace card that displays temperature or wind speed data as a color-coded heatmap, showing hourly patterns across multiple days. A single card handles both sensor types via the `card_type` configuration option.
+A custom Home Assistant Lovelace card that displays temperature, wind speed, or humidity data as a color-coded heatmap, showing hourly patterns across multiple days. A single card handles all sensor types via the `card_type` configuration option.
 
 Replaces and supersedes the separate [Temperature Heatmap Card](https://github.com/sxdjt/ha-temperature-heatmap) and [Windspeed Heatmap Card](https://github.com/sxdjt/ha-windspeed-heatmap). Existing configurations using the legacy element names (`ha-temperature-heatmap-card`, `windspeed-heatmap-card`) continue to work without changes.
 
@@ -12,7 +12,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 
 ## Features
 
-- Single card handles both temperature and wind speed sensors via `card_type`
+- Single card handles temperature, wind speed, and humidity sensors via `card_type`
 - Visual configuration editor with context-sensitive fields
 - Color interpolation with multiple methods (RGB, HSL, LAB, Gamma)
 - Configurable time periods (1-365 days) and intervals (1-24 hours)
@@ -35,6 +35,11 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Optional wind direction overlay (arrow, cardinal, or degrees)
 - Circular mean averaging for direction data
 
+**Humidity mode** (`card_type: humidity`):
+- Comfort-based color scale: yellow for dry (0-30%), green for comfortable (30-50%), yellow/orange/red for humid (above 55%)
+- Fixed % unit — no configuration needed
+- Shares temperature's aggregation, hour filtering, and gap filling options
+
 ## Installation
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sxdjt&repository=ha-weather-heatmap-card)
@@ -54,6 +59,12 @@ type: custom:ha-weather-heatmap-card
 card_type: windspeed
 entity: sensor.wind_speed
 direction_entity: sensor.wind_direction
+```
+
+```yaml
+type: custom:ha-weather-heatmap-card
+card_type: humidity
+entity: sensor.outdoor_humidity
 ```
 
 ### Migrating from legacy cards
@@ -79,7 +90,7 @@ entity: sensor.wind_speed
 |--------|------|---------|-------------|
 | `entity` | string | **Required** | Sensor entity ID |
 | `aggregation_mode` | string | `"average"` | How history readings are combined per cell: `"average"`, `"min"`, or `"max"` |
-| `card_type` | string | `"temperature"` | Card mode: `"temperature"` or `"windspeed"` |
+| `card_type` | string | `"temperature"` | Card mode: `"temperature"`, `"windspeed"`, or `"humidity"` |
 | `cell_font_size` | number/string | `11` | Cell font size |
 | `cell_gap` | number/string | `2` | Gap between cells |
 | `cell_height` | number/string | `36` | Cell height in pixels |
@@ -105,20 +116,26 @@ entity: sensor.wind_speed
 | `time_interval` | number | `2` | Hours per row (1-24) |
 | `title` | string | | Card title |
 
+### Temperature and Humidity Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `decimals` | number | `1` (temp) / `0` (humidity) | Decimal places shown (0-2) |
+| `end_hour` | number | `23` | Last hour to display (0-23) |
+| `start_hour` | number | `0` | First hour to display (0-23) |
+
 ### Temperature-Only Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `decimals` | number | `1` | Decimal places shown (0-2) |
-| `end_hour` | number | `23` | Last hour to display (0-23) |
 | `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
-| `start_hour` | number | `0` | First hour to display (0-23) |
 | `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
 
-### Wind Speed-Only Options
+### Wind Speed Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `decimals` | number | `1` | Decimal places shown (0-2) |
 | `direction_entity` | string | | Entity ID for wind direction sensor |
 | `direction_format` | string | `"arrow"` | Direction display: `"arrow"`, `"cardinal"`, or `"degrees"` |
 | `show_direction` | boolean | `true` | Show direction overlay on cells |
@@ -154,6 +171,19 @@ color_thresholds:
   - { value: 24,  color: "#ffeb3b" }
   - { value: 27,  color: "#ff9800" }
   - { value: 29,  color: "#f44336" }
+```
+
+### Humidity
+
+```yaml
+color_thresholds:
+  - { value: 0,  color: "#fff176" }  # Very dry
+  - { value: 15, color: "#ffee58" }  # Dry
+  - { value: 30, color: "#4caf50" }  # Comfortable low
+  - { value: 45, color: "#81c784" }  # Comfortable
+  - { value: 55, color: "#ffeb3b" }  # Getting humid
+  - { value: 65, color: "#ff9800" }  # Humid
+  - { value: 80, color: "#f44336" }  # Very humid
 ```
 
 ### Wind Speed - Beaufort Scale

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.3 (2026-03-25)
+
+### New Features
+
+- Added `card_type: 'humidity'` — displays relative humidity history as a heatmap with comfort-based color thresholds (yellow for dry 0-30%, green for comfortable 30-50%, yellow/orange/red above 55%). Color palette mirrors the temperature scale.
+- `decimals` option now applies to all card types including wind speed. Wind speed was previously hardcoded to 1 decimal place; it still defaults to 1 but can now be configured.
+
 ## v1.0.2 (2026-03-19)
 
 ### New Features
