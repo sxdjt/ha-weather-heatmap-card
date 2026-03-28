@@ -1,4 +1,4 @@
-/* Last modified: 25-Mar-2026 23:00 */
+/* Last modified: 28-Mar-2026 00:00 */
 // Card CSS styles
 
 /**
@@ -13,6 +13,7 @@ function createStyleElement() {
       display: block;
       padding: 0;
       overflow: hidden;
+      position: relative;
     }
 
     /* Card header with title and navigation */
@@ -267,14 +268,31 @@ function createStyleElement() {
       opacity: 0.8;
     }
 
-    /* Loading state - subtle opacity pulse on existing content, no layout shift */
-    .is-loading {
-      animation: loading-pulse 1.2s ease-in-out infinite;
+    /* Loading indicator - thin bar at top of card, no layout shift */
+    .loading-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      overflow: hidden;
+      z-index: 10;
     }
 
-    @keyframes loading-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.55; }
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 60%;
+      height: 100%;
+      background: var(--primary-color);
+      animation: loading-bar-slide 1.4s ease-in-out infinite;
+    }
+
+    @keyframes loading-bar-slide {
+      0%   { left: -60%; }
+      100% { left: 110%; }
     }
 
     @keyframes spin {
@@ -431,7 +449,7 @@ function createStyleElement() {
     @media (prefers-reduced-motion: reduce) {
       .cell,
       .nav-btn,
-      .loading-spinner {
+      .loading-bar::after {
         transition: none;
         animation: none;
       }
@@ -469,15 +487,16 @@ const DEFAULT_THRESHOLDS_C = [
 ];
 
 // --- Humidity thresholds (percentage, 0-100%) ---
-// Colors mirror the temperature scale palette: same greens, yellows, oranges, and reds.
+// Comfort zones: <30% Too Dry, 30-60% Ideal, 60-70% Comfortable to Marginal, >70% High/Uncomfortable
 const DEFAULT_THRESHOLDS_HUMIDITY = [
-  { value: 0,  color: '#fff176' },  // 0%: Very dry (pale yellow)
-  { value: 15, color: '#ffee58' },  // 15%: Dry (yellow)
-  { value: 30, color: '#4caf50' },  // 30%: Comfortable low (green) - matches temp 60F/16C
-  { value: 45, color: '#81c784' },  // 45%: Comfortable (light green) - matches temp 70F/21C
-  { value: 55, color: '#ffeb3b' },  // 55%: Getting humid (yellow) - matches temp 75F/24C
-  { value: 65, color: '#ff9800' },  // 65%: Humid (orange) - matches temp 80F/27C
-  { value: 80, color: '#f44336' },  // 80%: Very humid (red) - matches temp 85F/29C
+  { value: 0,  color: '#ffe082' },  // 0%: Very dry (light amber)
+  { value: 20, color: '#ffd740' },  // 20%: Dry (amber)
+  { value: 30, color: '#4caf50' },  // 30%: Ideal start (green)
+  { value: 45, color: '#66bb6a' },  // 45%: Ideal (light green)
+  { value: 60, color: '#ffeb3b' },  // 60%: Marginal start (yellow)
+  { value: 65, color: '#ffa726' },  // 65%: Marginal (orange)
+  { value: 70, color: '#f44336' },  // 70%: High/Uncomfortable (red)
+  { value: 85, color: '#b71c1c' },  // 85%: Very high (dark red)
 ];
 
 // --- Wind speed thresholds based on Beaufort scale ---
@@ -575,7 +594,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.1.0';
+const VERSION = '1.2.1';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1842,6 +1861,7 @@ class SensorHeatmapCard extends HTMLElement {
     if (!this._config || !this._hass) return;
 
     this._content.innerHTML = `
+      ${this._isLoading ? '<div class="loading-bar"></div>' : ''}
       <div class="card-header">
         <span class="title">${escapeHtml(this._config.title)}</span>
         ${this._renderNavControls()}
@@ -1854,7 +1874,6 @@ class SensorHeatmapCard extends HTMLElement {
     `;
 
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
-    this._content.classList.toggle('is-loading', !!this._isLoading);
 
     if (this._processedData) {
       this._content.style.setProperty('--days-count', this._config.days);
@@ -1895,17 +1914,6 @@ class SensorHeatmapCard extends HTMLElement {
     const end = dates[dates.length - 1];
     const formatOpts = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString(undefined, formatOpts)} - ${end.toLocaleDateString(undefined, formatOpts)}`;
-  }
-
-  _renderLoading() {
-    const type = this._config.card_type;
-    const label = type === 'windspeed' ? 'wind' : type === 'humidity' ? 'humidity' : 'temperature';
-    return `
-      <div class="loading">
-        <div class="loading-spinner"></div>
-        <div style="margin-top: 8px;">Loading ${label} data...</div>
-      </div>
-    `;
   }
 
   _renderError() {

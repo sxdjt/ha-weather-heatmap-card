@@ -784,6 +784,7 @@ export class SensorHeatmapCard extends HTMLElement {
     if (!this._config || !this._hass) return;
 
     this._content.innerHTML = `
+      ${this._isLoading ? '<div class="loading-bar"></div>' : ''}
       <div class="card-header">
         <span class="title">${escapeHtml(this._config.title)}</span>
         ${this._renderNavControls()}
@@ -796,7 +797,6 @@ export class SensorHeatmapCard extends HTMLElement {
     `;
 
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
-    this._content.classList.toggle('is-loading', !!this._isLoading);
 
     if (this._processedData) {
       this._content.style.setProperty('--days-count', this._config.days);
@@ -837,17 +837,6 @@ export class SensorHeatmapCard extends HTMLElement {
     const end = dates[dates.length - 1];
     const formatOpts = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString(undefined, formatOpts)} - ${end.toLocaleDateString(undefined, formatOpts)}`;
-  }
-
-  _renderLoading() {
-    const type = this._config.card_type;
-    const label = type === 'windspeed' ? 'wind' : type === 'humidity' ? 'humidity' : 'temperature';
-    return `
-      <div class="loading">
-        <div class="loading-spinner"></div>
-        <div style="margin-top: 8px;">Loading ${label} data...</div>
-      </div>
-    `;
   }
 
   _renderError() {

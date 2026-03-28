@@ -12,6 +12,7 @@ export function createStyleElement() {
       display: block;
       padding: 0;
       overflow: hidden;
+      position: relative;
     }
 
     /* Card header with title and navigation */
@@ -266,14 +267,31 @@ export function createStyleElement() {
       opacity: 0.8;
     }
 
-    /* Loading state - subtle opacity pulse on existing content, no layout shift */
-    .is-loading {
-      animation: loading-pulse 1.2s ease-in-out infinite;
+    /* Loading indicator - thin bar at top of card, no layout shift */
+    .loading-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      overflow: hidden;
+      z-index: 10;
     }
 
-    @keyframes loading-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.55; }
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 60%;
+      height: 100%;
+      background: var(--primary-color);
+      animation: loading-bar-slide 1.4s ease-in-out infinite;
+    }
+
+    @keyframes loading-bar-slide {
+      0%   { left: -60%; }
+      100% { left: 110%; }
     }
 
     @keyframes spin {
@@ -430,7 +448,7 @@ export function createStyleElement() {
     @media (prefers-reduced-motion: reduce) {
       .cell,
       .nav-btn,
-      .loading-spinner {
+      .loading-bar::after {
         transition: none;
         animation: none;
       }

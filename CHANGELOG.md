@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 (2026-03-28)
+
+### Bug Fixes
+
+- Replaced cross-browser-unreliable opacity pulse animation with a thin sliding progress bar at the top of the card. The pulse did not stop reliably on Chrome and Safari after data loaded. The new indicator does not affect card layout and disappears cleanly when loading completes.
+
 ## v1.2.0 (2026-03-25)
 
 ### New Features

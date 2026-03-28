@@ -31,15 +31,16 @@ export const DEFAULT_THRESHOLDS = DEFAULT_THRESHOLDS_F;
 export const DEFAULT_THRESHOLDS_CELSIUS = DEFAULT_THRESHOLDS_C;
 
 // --- Humidity thresholds (percentage, 0-100%) ---
-// Colors mirror the temperature scale palette: same greens, yellows, oranges, and reds.
+// Comfort zones: <30% Too Dry, 30-60% Ideal, 60-70% Comfortable to Marginal, >70% High/Uncomfortable
 export const DEFAULT_THRESHOLDS_HUMIDITY = [
-  { value: 0,  color: '#fff176' },  // 0%: Very dry (pale yellow)
-  { value: 15, color: '#ffee58' },  // 15%: Dry (yellow)
-  { value: 30, color: '#4caf50' },  // 30%: Comfortable low (green) - matches temp 60F/16C
-  { value: 45, color: '#81c784' },  // 45%: Comfortable (light green) - matches temp 70F/21C
-  { value: 55, color: '#ffeb3b' },  // 55%: Getting humid (yellow) - matches temp 75F/24C
-  { value: 65, color: '#ff9800' },  // 65%: Humid (orange) - matches temp 80F/27C
-  { value: 80, color: '#f44336' },  // 80%: Very humid (red) - matches temp 85F/29C
+  { value: 0,  color: '#ffe082' },  // 0%: Very dry (light amber)
+  { value: 20, color: '#ffd740' },  // 20%: Dry (amber)
+  { value: 30, color: '#4caf50' },  // 30%: Ideal start (green)
+  { value: 45, color: '#66bb6a' },  // 45%: Ideal (light green)
+  { value: 60, color: '#ffeb3b' },  // 60%: Marginal start (yellow)
+  { value: 65, color: '#ffa726' },  // 65%: Marginal (orange)
+  { value: 70, color: '#f44336' },  // 70%: High/Uncomfortable (red)
+  { value: 85, color: '#b71c1c' },  // 85%: Very high (dark red)
 ];
 
 // --- Wind speed thresholds based on Beaufort scale ---
@@ -137,4 +138,4 @@ export function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.1';
