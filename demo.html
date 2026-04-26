@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HA Weather Heatmap Card - Demo</title>
+  <style>
+    /*
+     * CSS custom properties that HA cards rely on.
+     * These inherit through shadow DOM boundaries, so the card's internal
+     * styles that use var(--primary-text-color) etc. will resolve correctly.
+     */
+    :root {
+      --primary-background-color: #f5f5f5;
+      --card-background-color: #ffffff;
+      --primary-text-color: #212121;
+      --secondary-text-color: #727272;
+      --text-primary-color: #ffffff;
+      --primary-color: #03a9f4;
+      --accent-color: #ff9800;
+      --divider-color: rgba(0, 0, 0, 0.12);
+      --ha-card-border-radius: 12px;
+      --ha-card-box-shadow:
+        0px 2px 1px -1px rgba(0, 0, 0, 0.2),
+        0px 1px 1px 0px rgba(0, 0, 0, 0.14),
+        0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+      --ha-card-border-color: transparent;
+      --ha-card-border-width: 0px;
+    }
+
+    [data-theme="dark"] {
+      --primary-background-color: #121212;
+      --card-background-color: #1e1e1e;
+      --primary-text-color: #e1e1e1;
+      --secondary-text-color: #9e9e9e;
+      --divider-color: rgba(255, 255, 255, 0.12);
+      --ha-card-box-shadow:
+        0px 2px 1px -1px rgba(0, 0, 0, 0.6),
+        0px 1px 1px 0px rgba(0, 0, 0, 0.4),
+        0px 1px 3px 0px rgba(0, 0, 0, 0.4);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--primary-background-color);
+      color: var(--primary-text-color);
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* ---- Page header ---- */
+
+    .page-header {
+      background: var(--card-background-color);
+      border-bottom: 1px solid var(--divider-color);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+      transition: background 0.3s ease;
+    }
+
+    .page-header-title h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      line-height: 1.2;
+    }
+
+    .page-header-title .subtitle {
+      font-size: 0.8rem;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: opacity 0.15s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { opacity: 0.85; }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: #ffffff;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--secondary-text-color);
+      border: 1px solid var(--divider-color);
+    }
+
+    /* ---- Page content ---- */
+
+    .page-content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+
+    /* ---- Demo sections ---- */
+
+    .demo-section {
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      margin-bottom: 14px;
+    }
+
+    .section-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      margin-bottom: 4px;
+    }
+
+    .section-header p {
+      font-size: 0.85rem;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+    }
+
+    /* ---- Playground section ---- */
+
+    .playground-section {
+      background: var(--card-background-color);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--ha-card-box-shadow);
+      margin-bottom: 40px;
+      transition: background 0.3s ease;
+    }
+
+    .playground-section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      margin-bottom: 4px;
+    }
+
+    .playground-desc {
+      font-size: 0.85rem;
+      color: var(--secondary-text-color);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .playground-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 640px) {
+      .playground-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .playground-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .editor-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-preset {
+      background: transparent;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 5px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 500;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-preset:hover,
+    .btn-preset.active {
+      background: var(--primary-color);
+      color: #ffffff;
+    }
+
+    .config-textarea {
+      font-family: 'SFMono-Regular', 'Cascadia Code', 'Courier New', monospace;
+      font-size: 0.78rem;
+      background: var(--primary-background-color);
+      color: var(--primary-text-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      padding: 12px;
+      resize: vertical;
+      min-height: 260px;
+      line-height: 1.5;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      width: 100%;
+    }
+
+    .config-textarea:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 1px;
+    }
+
+    .apply-hint {
+      font-size: 0.75rem;
+      color: var(--secondary-text-color);
+    }
+
+    .playground-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-apply {
+      background: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      flex: 1;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-apply:hover { opacity: 0.85; }
+
+    .btn-reset-config {
+      background: transparent;
+      color: var(--secondary-text-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn-reset-config:hover { opacity: 0.7; }
+
+    .error-display {
+      background: rgba(244, 67, 54, 0.08);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      border-radius: 6px;
+      color: #f44336;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      font-family: monospace;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .error-display.visible {
+      display: block;
+    }
+
+    /* ---- Footer ---- */
+
+    .page-footer {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--secondary-text-color);
+      font-size: 0.82rem;
+      border-top: 1px solid var(--divider-color);
+    }
+
+    .page-footer a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    .page-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-sep {
+      margin: 0 8px;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <div class="page-header-title">
+      <h1>HA Weather Heatmap Card</h1>
+      <div class="subtitle">Interactive Demo - no Home Assistant required</div>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-secondary" id="github-link" href="https://github.com/sxdjt/ha-weather-heatmap-card" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button class="btn btn-primary" id="theme-toggle">Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="page-content">
+
+    <section class="demo-section">
+      <div class="section-header">
+        <h2>Temperature - Fahrenheit</h2>
+        <p>7 days of outdoor temperature history, 2-hour buckets. Default Fahrenheit color scale from deep-freeze to hot.</p>
+      </div>
+      <div id="demo-temp-f"></div>
+    </section>
+
+    <section class="demo-section">
+      <div class="section-header">
+        <h2>Temperature - Celsius, compact</h2>
+        <p>14 days of indoor temperature history, 4-hour buckets. Compact layout with color interpolation enabled.</p>
+      </div>
+      <div id="demo-temp-c"></div>
+    </section>
+
+    <section class="demo-section">
+      <div class="section-header">
+        <h2>Wind Speed with Direction</h2>
+        <p>7 days of wind speed history (mph) with wind direction arrows. Beaufort scale color coding from calm to gale force.</p>
+      </div>
+      <div id="demo-wind"></div>
+    </section>
+
+    <section class="demo-section">
+      <div class="section-header">
+        <h2>Relative Humidity</h2>
+        <p>7 days of humidity history (%). Color scale highlights the ideal comfort range of 30-60%.</p>
+      </div>
+      <div id="demo-humidity"></div>
+    </section>
+
+    <section class="playground-section">
+      <h2>Live Playground</h2>
+      <p class="playground-desc">
+        Choose a preset or edit the JSON config below, then click Apply (or press Ctrl+Enter) to see your changes.
+        All entity IDs reference the demo data generated on this page.
+      </p>
+      <div class="playground-layout">
+        <div class="playground-preview" id="playground-preview"></div>
+        <div class="playground-editor">
+          <div class="editor-label">Preset</div>
+          <div class="preset-buttons">
+            <button class="btn-preset active" data-preset="temperature">Temperature F</button>
+            <button class="btn-preset" data-preset="temperature_c">Temperature C</button>
+            <button class="btn-preset" data-preset="wind">Wind Speed</button>
+            <button class="btn-preset" data-preset="humidity">Humidity</button>
+          </div>
+          <div class="editor-label">Config (JSON)</div>
+          <textarea class="config-textarea" id="playground-config" spellcheck="false"></textarea>
+          <div class="error-display" id="playground-error"></div>
+          <div class="apply-hint">Ctrl+Enter to apply</div>
+          <div class="playground-buttons">
+            <button class="btn-apply" id="btn-apply">Apply</button>
+            <button class="btn-reset-config" id="btn-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <a href="https://github.com/sxdjt/ha-weather-heatmap-card" target="_blank" rel="noopener noreferrer">ha-weather-heatmap-card</a>
+    <span class="footer-sep">|</span>
+    MIT License
+    <span class="footer-sep">|</span>
+    Demo data is randomly generated - no real sensors required
+  </footer>
+
+  <!--
+    Mock ha-card: the card creates document.createElement('ha-card') as its inner container.
+    We define it as a plain custom element. Its inline styles use var() which resolves
+    inherited CSS custom properties correctly across the shadow DOM boundary.
+    This must be defined BEFORE the card JS is loaded.
+  -->
+  <script>
+    if (!customElements.get('ha-card')) {
+      class HaCard extends HTMLElement {
+        constructor() {
+          super();
+          // Apply HA-like card styling. CSS custom properties (var()) in inline styles
+          // inherit through shadow DOM boundaries, so theme changes on :root propagate here.
+          this.style.cssText = [
+            'display: block',
+            'background: var(--card-background-color, #ffffff)',
+            'border-radius: var(--ha-card-border-radius, 12px)',
+            'box-shadow: var(--ha-card-box-shadow)',
+            'overflow: hidden',
+            'transition: background 0.3s ease',
+          ].join('; ');
+        }
+      }
+      customElements.define('ha-card', HaCard);
+    }
+  </script>
+
+  <!-- Load the card (registers ha-weather-heatmap-card and siblings as side effects) -->
+  <script type="module" src="dist/ha-weather-heatmap-card.js"></script>
+
+  <script type="module">
+    // Wait for the card custom element to be registered before doing anything.
+    await customElements.whenDefined('ha-weather-heatmap-card');
+
+    // ----------------------------------------------------------------
+    // Deterministic pseudo-random number generator
+    // Using a simple sine-based LCG so demo data looks the same on every load.
+    // ----------------------------------------------------------------
+
+    /**
+     * Return a pseudo-random float in [0, 1) for the given integer seed.
+     * Deterministic: same seed always produces the same value.
+     * @param {number} seed - integer seed value
+     * @returns {number} - float in [0, 1)
+     */
+    function seededRandom(seed) {
+      const x = Math.sin(seed + 1) * 10000;
+      return x - Math.floor(x);
+    }
+
+    // ----------------------------------------------------------------
+    // Mock statistics data generation
+    //
+    // The card's default data source is 'statistics', which calls:
+    //   hass.callWS({ type: 'recorder/statistics_during_period', ... })
+    // and expects a result shaped as:
+    //   { [entityId]: [{ start: ISO-string, mean, min, max }, ...] }
+    //
+    // We generate 30 days of hourly data so that navigation (back/forward)
+    // works correctly in the playground.
+    // ----------------------------------------------------------------
+
+    /**
+     * Generate 30 days of hourly temperature statistics in Fahrenheit.
+     * Pattern: slow day-to-day variation, daily curve peaking around 2pm.
+     * @param {string} entityId
+     * @returns {object} - { [entityId]: Array of stat points }
+     */
+    function generateTemperatureFStats(entityId) {
+      const points = [];
+      const now = new Date();
+      now.setMinutes(0, 0, 0);
+
+      // Seed constants chosen to avoid periodic aliasing
+      const SEED_DAY_BASE = 1000;
+      const SEED_HOUR_NOISE = 100;
+
+      for (let daysBack = 29; daysBack >= 0; daysBack--) {
+        // Day-to-day base temperature: slow sine wave + small random walk
+        const dayBase = 74
+          + Math.sin(daysBack * 0.42) * 7          // multi-day weather pattern
+          + (seededRandom(SEED_DAY_BASE + daysBack) - 0.5) * 5;  // day-to-day noise
+
+        for (let hour = 0; hour < 24; hour++) {
+          const dt = new Date(now);
+          dt.setDate(dt.getDate() - daysBack);
+          dt.setHours(hour, 0, 0, 0);
+          if (dt > now) continue;
+
+          // Daily temperature curve: cos peaks at hour 14 (2pm), trough near 2am
+          const hourlyCurve = Math.cos((hour - 14) * (2 * Math.PI) / 24);
+          const hourNoise = (seededRandom(SEED_HOUR_NOISE + daysBack * 31 + hour) - 0.5) * 2.5;
+          const mean = dayBase + hourlyCurve * 10 + hourNoise;
+
+          points.push({
+            start: dt.toISOString(),
+            mean: Math.round(mean * 10) / 10,
+            min: Math.round((mean - 1.8) * 10) / 10,
+            max: Math.round((mean + 2.2) * 10) / 10,
+          });
+        }
+      }
+      return { [entityId]: points };
+    }
+
+    /**
+     * Generate 30 days of hourly temperature statistics in Celsius
+     * (converted from the Fahrenheit dataset so both look climatologically consistent).
+     * @param {string} entityId
+     * @returns {object} - { [entityId]: Array of stat points }
+     */
+    function generateTemperatureCStats(entityId) {
+      const fStats = generateTemperatureFStats('_scratch_f');
+      const fPoints = fStats['_scratch_f'];
+
+      const convert = (f) => Math.round(((f - 32) * 5 / 9) * 10) / 10;
+
+      const points = fPoints.map(p => ({
+        start: p.start,
+        mean: convert(p.mean),
+        min: convert(p.min),
+        max: convert(p.max),
+      }));
+
+      return { [entityId]: points };
+    }
+
+    /**
+     * Generate 30 days of hourly wind speed (mph) and direction (degrees) statistics.
+     * Pattern: gusty with daily strengthening in the afternoon; direction slowly rotates.
+     * @param {string} speedEntityId
+     * @param {string} directionEntityId
+     * @returns {object} - { [speedEntityId]: ..., [directionEntityId]: ... }
+     */
+    function generateWindStats(speedEntityId, directionEntityId) {
+      const speedPoints = [];
+      const dirPoints = [];
+      const now = new Date();
+      now.setMinutes(0, 0, 0);
+
+      const SEED_DAY_SPEED = 2000;
+      const SEED_HOUR_GUST = 300;
+      const SEED_DIR = 4000;
+
+      for (let daysBack = 29; daysBack >= 0; daysBack--) {
+        // Day base speed: 4-20 mph, with multi-day variation
+        const dayBaseSpeed = 9
+          + Math.sin(daysBack * 0.65 + 1.1) * 5
+          + (seededRandom(SEED_DAY_SPEED + daysBack) - 0.5) * 4;
+
+        // Prevailing wind direction rotates slowly over days (SSW to W range)
+        const dayDir = (200 + daysBack * 12 + seededRandom(SEED_DIR + daysBack) * 25) % 360;
+
+        for (let hour = 0; hour < 24; hour++) {
+          const dt = new Date(now);
+          dt.setDate(dt.getDate() - daysBack);
+          dt.setHours(hour, 0, 0, 0);
+          if (dt > now) continue;
+
+          // Wind tends to pick up in the afternoon (solar heating drives mixing)
+          const hourMultiplier = 1.0 + 0.35 * Math.sin((hour - 7) * Math.PI / 12);
+          const gustNoise = (seededRandom(SEED_HOUR_GUST + daysBack * 31 + hour) - 0.35) * 7;
+          const mean = Math.max(0, dayBaseSpeed * hourMultiplier + gustNoise);
+          const peak = mean + seededRandom(SEED_HOUR_GUST + daysBack * 31 + hour + 5000) * 5;
+
+          // Direction wobble around daily prevailing direction
+          const dirWobble = (seededRandom(SEED_DIR + daysBack * 31 + hour) - 0.5) * 45;
+          const dir = (dayDir + dirWobble + 360) % 360;
+
+          speedPoints.push({
+            start: dt.toISOString(),
+            mean: Math.round(mean * 10) / 10,
+            min: Math.round(Math.max(0, mean - 2) * 10) / 10,
+            max: Math.round(peak * 10) / 10,
+          });
+
+          dirPoints.push({
+            start: dt.toISOString(),
+            mean: Math.round(dir),
+            min: Math.round((dir - 12 + 360) % 360),
+            max: Math.round((dir + 12) % 360),
+          });
+        }
+      }
+
+      return {
+        [speedEntityId]: speedPoints,
+        [directionEntityId]: dirPoints,
+      };
+    }
+
+    /**
+     * Generate 30 days of hourly relative humidity (%) statistics.
+     * Pattern: inverse of temperature cycle - higher humidity at night, lower in afternoon.
+     * @param {string} entityId
+     * @returns {object} - { [entityId]: Array of stat points }
+     */
+    function generateHumidityStats(entityId) {
+      const points = [];
+      const now = new Date();
+      now.setMinutes(0, 0, 0);
+
+      const SEED_DAY_BASE = 6000;
+      const SEED_HOUR_NOISE = 700;
+
+      for (let daysBack = 29; daysBack >= 0; daysBack--) {
+        // Day base humidity: 50-80% with multi-day variation
+        const dayBase = 62
+          + Math.sin(daysBack * 0.55 + 0.8) * 12
+          + (seededRandom(SEED_DAY_BASE + daysBack) - 0.5) * 7;
+
+        for (let hour = 0; hour < 24; hour++) {
+          const dt = new Date(now);
+          dt.setDate(dt.getDate() - daysBack);
+          dt.setHours(hour, 0, 0, 0);
+          if (dt > now) continue;
+
+          // Humidity inversely follows temperature: peak near 5-6am, trough near 2-3pm
+          const hourlyCurve = -Math.cos((hour - 14) * (2 * Math.PI) / 24);
+          const hourNoise = (seededRandom(SEED_HOUR_NOISE + daysBack * 31 + hour) - 0.5) * 4;
+          const mean = Math.min(98, Math.max(15, dayBase + hourlyCurve * 14 + hourNoise));
+
+          points.push({
+            start: dt.toISOString(),
+            mean: Math.round(mean),
+            min: Math.round(Math.max(10, mean - 3)),
+            max: Math.round(Math.min(100, mean + 3)),
+          });
+        }
+      }
+      return { [entityId]: points };
+    }
+
+    // ----------------------------------------------------------------
+    // Build the complete mock dataset (computed once, reused for all cards)
+    // ----------------------------------------------------------------
+
+    const MOCK_DATASETS = {
+      ...generateTemperatureFStats('sensor.demo_temperature_f'),
+      ...generateTemperatureCStats('sensor.demo_temperature_c'),
+      ...generateWindStats('sensor.demo_windspeed', 'sensor.demo_wind_direction'),
+      ...generateHumidityStats('sensor.demo_humidity'),
+    };
+
+    // ----------------------------------------------------------------
+    // Mock hass object
+    // ----------------------------------------------------------------
+
+    /**
+     * Create a mock Home Assistant hass object.
+     * The card uses three things from hass:
+     *   - hass.states[entityId]  - entity current state and attributes
+     *   - hass.callWS(options)   - WebSocket calls (statistics API)
+     *   - hass.callApi(method, url) - REST API calls (history API fallback)
+     *
+     * @returns {object} - mock hass object
+     */
+    function createMockHass() {
+      return {
+        states: {
+          'sensor.demo_temperature_f': {
+            state: '73.8',
+            attributes: {
+              unit_of_measurement: '\u00b0F',
+              friendly_name: 'Outdoor Temperature',
+            },
+          },
+          'sensor.demo_temperature_c': {
+            state: '23.2',
+            attributes: {
+              unit_of_measurement: '\u00b0C',
+              friendly_name: 'Indoor Temperature',
+            },
+          },
+          'sensor.demo_windspeed': {
+            state: '11.4',
+            attributes: {
+              unit_of_measurement: 'mph',
+              friendly_name: 'Wind Speed',
+            },
+          },
+          'sensor.demo_wind_direction': {
+            state: '215',
+            attributes: {
+              unit_of_measurement: '\u00b0',
+              friendly_name: 'Wind Direction',
+            },
+          },
+          'sensor.demo_humidity': {
+            state: '54',
+            attributes: {
+              unit_of_measurement: '%',
+              friendly_name: 'Relative Humidity',
+            },
+          },
+        },
+
+        /**
+         * Mock WebSocket API handler.
+         * Handles recorder/statistics_during_period, which is the default data source.
+         * Returns pre-generated stat points for all requested entity IDs.
+         * @param {object} options - WS message options
+         * @returns {Promise<object>}
+         */
+        callWS(options) {
+          if (options.type === 'recorder/statistics_during_period') {
+            const result = {};
+            for (const id of (options.statistic_ids || [])) {
+              result[id] = MOCK_DATASETS[id] || [];
+            }
+            return Promise.resolve(result);
+          }
+          // Other WS types are not used by this card
+          return Promise.resolve({});
+        },
+
+        /**
+         * Mock REST API handler.
+         * Handles history/period requests (used when data_source: 'history').
+         * Converts the statistics-format dataset into the history-API format.
+         * @param {string} method - HTTP method ('GET')
+         * @param {string} url - HA API URL path
+         * @returns {Promise<Array>}
+         */
+        callApi(method, url) {
+          const match = url.match(/filter_entity_id=([^&]+)/);
+          if (!match) return Promise.resolve([]);
+
+          const entityId = match[1];
+          const stats = MOCK_DATASETS[entityId] || [];
+
+          // History API returns an outer array (one entry per entity) wrapping
+          // an array of state change objects.
+          const history = stats.map(point => ({
+            last_changed: point.start,
+            last_updated: point.start,
+            state: String(point.mean),
+          }));
+
+          return Promise.resolve([history]);
+        },
+      };
+    }
+
+    const MOCK_HASS = createMockHass();
+
+    // ----------------------------------------------------------------
+    // Card instantiation helper
+    // ----------------------------------------------------------------
+
+    /**
+     * Create a ha-weather-heatmap-card, configure it, and mount it in the given container.
+     * Replaces any existing card in the container.
+     * @param {string | HTMLElement} container - element or element ID to mount into
+     * @param {object} config - card configuration object
+     * @returns {HTMLElement | null} - the card element, or null on error
+     */
+    function mountCard(container, config) {
+      const el = typeof container === 'string'
+        ? document.getElementById(container)
+        : container;
+
+      if (!el) return null;
+
+      el.innerHTML = '';
+
+      const card = document.createElement('ha-weather-heatmap-card');
+      el.appendChild(card);
+
+      card.setConfig(config);
+      card.hass = MOCK_HASS;
+
+      return card;
+    }
+
+    // ----------------------------------------------------------------
+    // Preset configurations
+    // ----------------------------------------------------------------
+
+    const PRESETS = {
+      temperature: {
+        type: 'ha-weather-heatmap-card',
+        card_type: 'temperature',
+        entity: 'sensor.demo_temperature_f',
+        title: 'Outdoor Temperature',
+        days: 7,
+        time_interval: 2,
+        data_source: 'statistics',
+      },
+
+      temperature_c: {
+        type: 'ha-weather-heatmap-card',
+        card_type: 'temperature',
+        entity: 'sensor.demo_temperature_c',
+        title: 'Indoor Temperature',
+        days: 14,
+        time_interval: 4,
+        compact: true,
+        interpolate_colors: true,
+        data_source: 'statistics',
+      },
+
+      wind: {
+        type: 'ha-weather-heatmap-card',
+        card_type: 'windspeed',
+        entity: 'sensor.demo_windspeed',
+        direction_entity: 'sensor.demo_wind_direction',
+        title: 'Wind Speed',
+        days: 7,
+        time_interval: 2,
+        data_source: 'statistics',
+      },
+
+      humidity: {
+        type: 'ha-weather-heatmap-card',
+        card_type: 'humidity',
+        entity: 'sensor.demo_humidity',
+        title: 'Relative Humidity',
+        days: 7,
+        time_interval: 2,
+        data_source: 'statistics',
+      },
+    };
+
+    // ----------------------------------------------------------------
+    // Mount all demo cards
+    // ----------------------------------------------------------------
+
+    mountCard('demo-temp-f',   PRESETS.temperature);
+    mountCard('demo-temp-c',   PRESETS.temperature_c);
+    mountCard('demo-wind',     PRESETS.wind);
+    mountCard('demo-humidity', PRESETS.humidity);
+
+    // ----------------------------------------------------------------
+    // Playground
+    // ----------------------------------------------------------------
+
+    const configTextarea = document.getElementById('playground-config');
+    const errorDisplay = document.getElementById('playground-error');
+    const presetButtons = document.querySelectorAll('.btn-preset');
+
+    // Track the active preset so Reset restores the right config
+    let activePresetKey = 'temperature';
+
+    /**
+     * Apply the current textarea content as a new card config to the playground.
+     * Shows a parse-error message if the JSON is invalid.
+     */
+    function applyPlaygroundConfig() {
+      errorDisplay.classList.remove('visible');
+      try {
+        const config = JSON.parse(configTextarea.value);
+        mountCard('playground-preview', config);
+      } catch (err) {
+        errorDisplay.textContent = 'JSON error: ' + err.message;
+        errorDisplay.classList.add('visible');
+      }
+    }
+
+    /**
+     * Switch to a preset configuration: update textarea, active button state,
+     * and re-mount the playground card.
+     * @param {string} presetKey - key in PRESETS
+     */
+    function selectPreset(presetKey) {
+      if (!PRESETS[presetKey]) return;
+      activePresetKey = presetKey;
+      configTextarea.value = JSON.stringify(PRESETS[presetKey], null, 2);
+      errorDisplay.classList.remove('visible');
+
+      presetButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === presetKey);
+      });
+
+      applyPlaygroundConfig();
+    }
+
+    // Initial playground state
+    selectPreset('temperature');
+
+    document.getElementById('btn-apply').addEventListener('click', applyPlaygroundConfig);
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      selectPreset(activePresetKey);
+    });
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => selectPreset(btn.dataset.preset));
+    });
+
+    // Ctrl+Enter / Cmd+Enter to apply from the textarea
+    configTextarea.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        applyPlaygroundConfig();
+      }
+    });
+
+    // ----------------------------------------------------------------
+    // Dark mode toggle
+    // ----------------------------------------------------------------
+
+    const themeToggle = document.getElementById('theme-toggle');
+    let isDark = false;
+
+    themeToggle.addEventListener('click', () => {
+      isDark = !isDark;
+      document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      themeToggle.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    });
+  </script>
+
+</body>
+</html>
