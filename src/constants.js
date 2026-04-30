@@ -31,12 +31,11 @@ export const DEFAULT_THRESHOLDS = DEFAULT_THRESHOLDS_F;
 export const DEFAULT_THRESHOLDS_CELSIUS = DEFAULT_THRESHOLDS_C;
 
 // --- Humidity thresholds (percentage, 0-100%) ---
-// Comfort zones: symmetric red-orange-yellow-green-yellow-orange-red
-// Both extremes (very dry / very humid) are uncomfortable; 40-55% is ideal
+// Dry end: blue/cyan; ideal: green; humid end: yellow-orange-red (mirrors temperature card logic)
 export const DEFAULT_THRESHOLDS_HUMIDITY = [
-  { value: 0,  color: '#f44336' },  // 0%: Very dry (red)
-  { value: 20, color: '#ff9800' },  // 20%: Dry (orange)
-  { value: 30, color: '#ffeb3b' },  // 30%: Slightly dry (yellow)
+  { value: 0,  color: '#1565c0' },  // 0%: Very dry (deep blue)
+  { value: 20, color: '#42a5f5' },  // 20%: Dry (blue)
+  { value: 30, color: '#80deea' },  // 30%: Slightly dry (cyan)
   { value: 45, color: '#4caf50' },  // 45%: Ideal (green)
   { value: 60, color: '#ffeb3b' },  // 60%: Slightly humid (yellow)
   { value: 70, color: '#ff9800' },  // 70%: Humid (orange)
@@ -138,4 +137,4 @@ export function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-export const VERSION = '1.3.1';
+export const VERSION = '1.3.2';

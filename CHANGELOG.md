@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.2 (2026-04-30)
+
+### Bug Fixes
+
+- Humidity dry-end colors changed from purple/lavender to deep blue/cyan, matching the temperature card's cold-to-hot logic. The full spectrum now reads blue (very dry) through cyan, green (ideal), yellow, orange, to red (very humid) - making dry and humid extremes immediately distinguishable.
+
 ## v1.3.1 (2026-04-30)
 
 ### Bug Fixes
