@@ -1,4 +1,4 @@
-/* Last modified: 31-Mar-2026 22:23 */
+/* Last modified: 29-Apr-2026 20:55 */
 // Card CSS styles
 
 /**
@@ -21,15 +21,16 @@ function createStyleElement() {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--divider-color);
       flex-wrap: wrap;
       gap: 8px;
     }
 
     .title {
-      font-size: 20px;
-      font-weight: 500;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
       color: var(--primary-text-color);
     }
 
@@ -37,30 +38,32 @@ function createStyleElement() {
     .nav-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
 
     .nav-btn {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
-      border: none;
-      border-radius: 4px;
-      width: 32px;
-      height: 32px;
-      font-size: 18px;
+      background: transparent;
+      color: var(--secondary-text-color);
+      border: 1.5px solid var(--divider-color);
+      border-radius: 8px;
+      width: 30px;
+      height: 30px;
+      font-size: 15px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.2s ease;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
 
     .nav-btn:hover:not(:disabled) {
-      opacity: 0.8;
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
+      border-color: var(--primary-color);
     }
 
     .nav-btn:disabled {
-      opacity: 0.3;
+      opacity: 0.25;
       cursor: not-allowed;
     }
 
@@ -70,19 +73,20 @@ function createStyleElement() {
     }
 
     .nav-btn-current {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
-      border: none;
-      border-radius: 4px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 500;
+      background: transparent;
+      color: var(--primary-color);
+      border: 1.5px solid var(--primary-color);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s ease;
+      transition: background 0.15s ease, color 0.15s ease;
     }
 
     .nav-btn-current:hover {
-      opacity: 0.8;
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
     }
 
     .nav-btn-current:focus {
@@ -96,10 +100,12 @@ function createStyleElement() {
     }
 
     .date-range {
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
       color: var(--secondary-text-color);
-      min-width: 120px;
+      min-width: 130px;
       text-align: center;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Heatmap grid container */
@@ -140,6 +146,8 @@ function createStyleElement() {
       font-size: var(--cell-font-size, 11px);
       color: var(--secondary-text-color);
       font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.1px;
     }
 
     /* Data grid container */
@@ -159,10 +167,29 @@ function createStyleElement() {
 
     .date-header {
       text-align: center;
-      font-weight: bold;
+      font-weight: 500;
       font-size: 12px;
-      color: var(--primary-text-color);
-      padding: 4px;
+      color: var(--secondary-text-color);
+      padding: 4px 2px;
+      position: relative;
+    }
+
+    /* Today's date column: accent color + dot below the number */
+    .date-header.today {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    .date-header.today::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--primary-color);
     }
 
     /* Data cells grid */
@@ -179,9 +206,9 @@ function createStyleElement() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border-radius: var(--cell-border-radius, 4px);
+      border-radius: var(--cell-border-radius, 6px);
       cursor: pointer;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
       position: relative;
       font-size: var(--cell-font-size, 11px);
       padding: var(--cell-padding, 2px);
@@ -193,8 +220,8 @@ function createStyleElement() {
        render on top of the more-info popup due to the transform stacking context. */
     @media (hover: hover) {
       .cell:hover:not(.no-data) {
-        transform: scale(1.08);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transform: scale(1.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), 0 0 0 1.5px rgba(255, 255, 255, 0.35);
         z-index: 10;
       }
 
@@ -228,8 +255,9 @@ function createStyleElement() {
 
     /* Primary value text (temperature or wind speed) */
     .value {
-      font-weight: bold;
+      font-weight: 700;
       line-height: 1.1;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Wind direction overlay (rendered below speed value) */
@@ -243,22 +271,49 @@ function createStyleElement() {
     .footer {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 12px 16px;
+      gap: 6px;
+      padding: 10px 16px 12px;
       border-top: 1px solid var(--divider-color);
       background: var(--card-background-color);
-      font-size: 13px;
-      color: var(--secondary-text-color);
     }
 
+    /* Three equal stat columns with thin vertical dividers */
     .footer-stats {
-      display: flex;
-      justify-content: space-around;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
       align-items: center;
     }
 
-    .footer-stats span {
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      padding: 4px 0;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--secondary-text-color);
       font-weight: 500;
+      opacity: 0.85;
+    }
+
+    .stat-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.2px;
+    }
+
+    .stat-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--divider-color);
+      margin: 0 4px;
     }
 
     .entity-name {
@@ -286,7 +341,13 @@ function createStyleElement() {
       left: -60%;
       width: 60%;
       height: 100%;
-      background: var(--primary-color);
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        var(--primary-color) 40%,
+        var(--primary-color) 60%,
+        transparent 100%
+      );
       animation: loading-bar-slide 1.4s ease-in-out infinite;
     }
 
@@ -333,41 +394,49 @@ function createStyleElement() {
       z-index: 1000;
       background: var(--card-background-color, white);
       border: 1px solid var(--divider-color);
-      border-radius: 4px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.16),
+        0 1px 4px rgba(0, 0, 0, 0.08);
+      padding: 9px 13px;
       font-size: 12px;
       pointer-events: none;
-      max-width: 250px;
-      line-height: 1.4;
+      max-width: 240px;
+      line-height: 1.5;
     }
 
     .tooltip div {
-      margin: 2px 0;
+      margin: 1px 0;
     }
 
     .tooltip strong {
       color: var(--primary-text-color);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 3px;
+      font-size: 12px;
     }
 
     /* Legend bar */
     .legend {
-      padding: 8px 16px 12px;
+      padding: 8px 16px 14px;
       border-top: 1px solid var(--divider-color);
     }
 
     .legend-bar {
-      height: 12px;
-      border-radius: 3px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      height: 14px;
+      border-radius: 7px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
     }
 
     .legend-labels {
       position: relative;
-      height: 14px;
-      margin-top: 4px;
-      font-size: 9px;
+      height: 16px;
+      margin-top: 5px;
+      font-size: 10px;
+      font-weight: 500;
       color: var(--secondary-text-color);
+      font-variant-numeric: tabular-nums;
     }
 
     .legend-labels span {
@@ -381,18 +450,18 @@ function createStyleElement() {
     }
 
     .compact-header .title {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .compact-header .nav-btn {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       font-size: 12px;
     }
 
     .compact-header .nav-btn-current {
       padding: 2px 6px;
-      font-size: 11px;
+      font-size: 10px;
     }
 
     .compact-header .month-header {
@@ -403,7 +472,14 @@ function createStyleElement() {
 
     .compact-header .footer {
       padding: 6px 8px;
-      gap: 4px;
+      gap: 3px;
+    }
+
+    .compact-header .stat-label {
+      font-size: 8px;
+    }
+
+    .compact-header .stat-value {
       font-size: 11px;
     }
 
@@ -594,7 +670,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.2.1';
+const VERSION = '1.3.0';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1883,7 +1959,7 @@ class SensorHeatmapCard extends HTMLElement {
       this._content.style.setProperty('--cell-padding', sizing.cellPadding);
       this._content.style.setProperty('--cell-gap', sizing.cellGap);
       this._content.style.setProperty('--cell-font-size', sizing.cellFontSize);
-      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners ? '4px' : '0');
+      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners ? '6px' : '0');
     }
   }
 
@@ -1931,7 +2007,11 @@ class SensorHeatmapCard extends HTMLElement {
   _renderGrid() {
     const { rows, dates } = this._processedData;
     const monthName = dates[0].toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    const dateHeaders = dates.map(date => `<div class="date-header">${date.getDate()}</div>`).join('');
+    const todayKey = new Date().toDateString();
+    const dateHeaders = dates.map(date => {
+      const isToday = date.toDateString() === todayKey;
+      return `<div class="date-header${isToday ? ' today' : ''}">${date.getDate()}</div>`;
+    }).join('');
     const timeLabels = rows.map(row => `<div class="time-label">${row.label}</div>`).join('');
     const dataCells = rows.map(row => row.cells.map(cell => this._renderCell(cell)).join('')).join('');
 
@@ -2137,9 +2217,20 @@ class SensorHeatmapCard extends HTMLElement {
     return `
       <div class="footer">
         <div class="footer-stats">
-          <span>Min: ${stats.min.toFixed(decimals)} ${unit}</span>
-          <span>Max: ${stats.max.toFixed(decimals)} ${unit}</span>
-          <span>Avg: ${stats.avg.toFixed(decimals)} ${unit}</span>
+          <div class="stat">
+            <span class="stat-label">Min</span>
+            <span class="stat-value">${stats.min.toFixed(decimals)} ${unit}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Max</span>
+            <span class="stat-value">${stats.max.toFixed(decimals)} ${unit}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Avg</span>
+            <span class="stat-value">${stats.avg.toFixed(decimals)} ${unit}</span>
+          </div>
         </div>
         ${entityName}
       </div>

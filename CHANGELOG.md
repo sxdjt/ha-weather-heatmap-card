@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.3.0 (2026-04-29)
+
+### New Features
+
+- Today's date column is now highlighted in the grid: the date number renders in the primary accent color with a dot indicator beneath it, making the current day immediately identifiable
+- Redesigned footer statistics panel: Min, Max, and Avg are now displayed as a proper three-column panel with uppercase labels above the values, separated by thin vertical dividers
+
+### Improvements
+
+- Navigation buttons changed from solid filled to ghost/outlined style - lighter visual weight that fills on hover for clear affordance
+- "Current" button is now outlined in the primary accent color rather than filled
+- Cell border-radius increased from 4px to 6px
+- Cell hover effect adds a subtle white ring highlight in addition to the scale
+- Time labels now use tabular numbers for consistent column alignment
+- Legend bar is taller (14px) with pill-shaped ends
+- Tooltip has larger border-radius (8px) and layered shadows for better depth
+- Loading bar uses a gradient shimmer instead of a hard-edged block
+
 ## v1.2.1 (2026-03-28)
 
 ### Bug Fixes

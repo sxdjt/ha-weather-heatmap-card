@@ -806,7 +806,7 @@ export class SensorHeatmapCard extends HTMLElement {
       this._content.style.setProperty('--cell-padding', sizing.cellPadding);
       this._content.style.setProperty('--cell-gap', sizing.cellGap);
       this._content.style.setProperty('--cell-font-size', sizing.cellFontSize);
-      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners ? '4px' : '0');
+      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners ? '6px' : '0');
     }
   }
 
@@ -854,7 +854,11 @@ export class SensorHeatmapCard extends HTMLElement {
   _renderGrid() {
     const { rows, dates } = this._processedData;
     const monthName = dates[0].toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    const dateHeaders = dates.map(date => `<div class="date-header">${date.getDate()}</div>`).join('');
+    const todayKey = new Date().toDateString();
+    const dateHeaders = dates.map(date => {
+      const isToday = date.toDateString() === todayKey;
+      return `<div class="date-header${isToday ? ' today' : ''}">${date.getDate()}</div>`;
+    }).join('');
     const timeLabels = rows.map(row => `<div class="time-label">${row.label}</div>`).join('');
     const dataCells = rows.map(row => row.cells.map(cell => this._renderCell(cell)).join('')).join('');
 
@@ -1060,9 +1064,20 @@ export class SensorHeatmapCard extends HTMLElement {
     return `
       <div class="footer">
         <div class="footer-stats">
-          <span>Min: ${stats.min.toFixed(decimals)} ${unit}</span>
-          <span>Max: ${stats.max.toFixed(decimals)} ${unit}</span>
-          <span>Avg: ${stats.avg.toFixed(decimals)} ${unit}</span>
+          <div class="stat">
+            <span class="stat-label">Min</span>
+            <span class="stat-value">${stats.min.toFixed(decimals)} ${unit}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Max</span>
+            <span class="stat-value">${stats.max.toFixed(decimals)} ${unit}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Avg</span>
+            <span class="stat-value">${stats.avg.toFixed(decimals)} ${unit}</span>
+          </div>
         </div>
         ${entityName}
       </div>
