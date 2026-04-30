@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.1 (2026-04-30)
+
+### Bug Fixes
+
+- Humidity color thresholds now use a symmetric comfort-based scale: red at both extremes (very dry below 20%, very humid above 70%), orange at 20% and 70%, yellow at 30% and 60%, green at the comfortable mid-range (~45%). Previously the dry end used an amber/yellow scale that did not reflect discomfort at low humidity.
+
 ## v1.3.0 (2026-04-29)
 
 ### New Features
