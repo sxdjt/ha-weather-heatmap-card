@@ -1,44 +1,10 @@
 # Changelog
 
-## v1.4.5 (2026-05-12)
-
-### Bug Fixes
-
-- Aggregation toggle button now uses the `nav-btn-current` class directly instead of a separate `.agg-btn` class. This guarantees pixel-identical rendering since both buttons share exactly the same CSS rules. Click handling is discriminated by `data-action` attribute rather than class name.
-
-## v1.4.4 (2026-05-12)
-
-### Bug Fixes
-
-- Removed the filled active-state styling from the aggregation toggle button entirely. HA's rendering environment causes the button to grow when a background color is applied. The current mode is now communicated solely by the button label (Avg/Min/Max), and the button always renders identically to the "Current" pill.
-
-## v1.4.3 (2026-05-12)
-
-### Bug Fixes
-
-- Renamed the aggregation toggle's active-state CSS class from `.active` to `.agg-non-default` to avoid collision with HA's global `.active` stylesheet, which was causing the button to render oversized when a non-default mode was selected.
-
-## v1.4.2 (2026-05-12)
-
-### Bug Fixes
-
-- Aggregation toggle button now shares the exact same CSS rules as the "Current" navigation pill rather than duplicating them. This fixes a visual inconsistency where the toggle border appeared thicker than "Current" due to native browser button styles not being fully overridden.
-
-## v1.4.1 (2026-05-12)
-
-### New Features
-
-- Aggregation mode toggle (Avg/Min/Max) now works on wind speed cards. For statistics data, all three HA pre-computed values (mean/max/min) are fetched in one request so switching is instant. For history API data, all three are computed from raw readings in the same pass. Wind defaults to Max (peak gust).
-
-### Improvements
-
-- Aggregation toggle button now uses the same pill style as the "Current" navigation button - primary color outline, fills solid when active or on hover.
-
 ## v1.4.0 (2026-05-12)
 
 ### New Features
 
-- Added an interactive aggregation mode toggle button (Avg/Min/Max) to the card header for temperature, humidity, and generic cards. Clicking cycles through average, minimum, and maximum without a network request - the already-cached data is re-processed instantly. The button is highlighted when a non-default mode is active. The `aggregation_mode` config option continues to set the initial mode on load.
+- Added an Avg/Min/Max toggle button to the card header for all card types. Clicking cycles through aggregation modes instantly without refetching - cached data is re-processed in place. Wind cards default to Max (peak gust); all others default to Average. The `aggregation_mode` config option sets the initial mode.
 
 ## v1.3.2 (2026-04-30)
 

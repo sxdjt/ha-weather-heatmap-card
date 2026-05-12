@@ -1,4 +1,4 @@
-/* Last modified: 12-May-2026 15:34 */
+/* Last modified: 12-May-2026 15:38 */
 // Card CSS styles
 
 /**
@@ -669,7 +669,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.4.5';
+const VERSION = '1.4.0';
 
 // Color parsing, interpolation, and utility functions
 
