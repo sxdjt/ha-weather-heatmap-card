@@ -102,7 +102,7 @@ export function createStyleElement() {
     }
 
     /* Filled when not on the card-type default mode */
-    .agg-btn.active {
+    .agg-btn.agg-non-default {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
     }

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.3 (2026-05-12)
+
+### Bug Fixes
+
+- Renamed the aggregation toggle's active-state CSS class from `.active` to `.agg-non-default` to avoid collision with HA's global `.active` stylesheet, which was causing the button to render oversized when a non-default mode was selected.
+
 ## v1.4.2 (2026-05-12)
 
 ### Bug Fixes
