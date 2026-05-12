@@ -1,4 +1,4 @@
-/* Last modified: 30-Apr-2026 15:35 */
+/* Last modified: 12-May-2026 14:59 */
 // Card CSS styles
 
 /**
@@ -97,6 +97,40 @@ function createStyleElement() {
     .nav-btn-current.hidden {
       visibility: hidden;
       pointer-events: none;
+    }
+
+    /* Aggregation mode toggle button (Avg/Min/Max) */
+    .agg-btn {
+      background: transparent;
+      color: var(--secondary-text-color);
+      border: 1.5px solid var(--divider-color);
+      border-radius: 8px;
+      height: 30px;
+      min-width: 36px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .agg-btn:hover {
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
+      border-color: var(--primary-color);
+    }
+
+    /* Highlighted when not on the default 'average' mode */
+    .agg-btn.active {
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
+      border-color: var(--primary-color);
+    }
+
+    .agg-btn:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
 
     .date-range {
@@ -669,7 +703,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.3.2';
+const VERSION = '1.4.0';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1196,6 +1230,10 @@ class SensorHeatmapCard extends HTMLElement {
     // Navigation state (0=current view, -7=one week back, etc.)
     this._viewOffset = 0;
 
+    // Active aggregation mode for non-wind cards - runtime state, separate from config
+    // so the user can toggle it on the fly without modifying the saved config.
+    this._activeAggregationMode = null;
+
     // UI state
     this._isLoading = false;
     this._error = null;
@@ -1392,6 +1430,14 @@ class SensorHeatmapCard extends HTMLElement {
 
     // Sort thresholds ascending
     this._config.color_thresholds = [...this._config.color_thresholds].sort((a, b) => a.value - b.value);
+
+    // Initialize active aggregation mode from config.
+    // Wind cards don't use this (they always aggregate by max speed).
+    if (['temperature', 'humidity', 'generic'].includes(card_type)) {
+      this._activeAggregationMode = config.aggregation_mode || 'average';
+    } else {
+      this._activeAggregationMode = null;
+    }
 
     if (this._hass) {
       this._clearAndSetInterval();
@@ -1708,11 +1754,12 @@ class SensorHeatmapCard extends HTMLElement {
       }
     });
 
-    // Calculate aggregated value per bucket based on aggregation_mode
+    // Calculate aggregated value per bucket based on active aggregation mode.
+    // Uses _activeAggregationMode (runtime) so the user can toggle without a refetch.
     Object.keys(grid).forEach(key => {
       const bucket = grid[key];
       if (bucket.count > 0) {
-        switch (this._config.aggregation_mode) {
+        switch (this._activeAggregationMode || 'average') {
           case 'min': bucket.temperature = bucket.min; break;
           case 'max': bucket.temperature = bucket.max; break;
           default:    bucket.temperature = bucket.sum / bucket.count; break;
@@ -1966,6 +2013,7 @@ class SensorHeatmapCard extends HTMLElement {
     const canGoForward = this._viewOffset < 0;
     const showCurrentButton = this._viewOffset < 0;
     const dateRange = this._getDateRangeLabel();
+    const showAggToggle = this._config.card_type !== 'windspeed';
 
     return `
       <div class="nav-controls">
@@ -1978,7 +2026,27 @@ class SensorHeatmapCard extends HTMLElement {
                 data-direction="current"
                 aria-label="Jump to current"
                 ${showCurrentButton ? '' : 'aria-hidden="true"'}>Current</button>
+        ${showAggToggle ? this._renderAggregationToggle() : ''}
       </div>
+    `;
+  }
+
+  /**
+   * Render the aggregation mode toggle button (non-wind cards only).
+   * Shows the current mode (Avg/Min/Max) and cycles on click.
+   * A non-default mode is highlighted so the user knows they are not viewing averages.
+   * @returns {string} HTML string for the toggle button
+   */
+  _renderAggregationToggle() {
+    const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
+    const mode = this._activeAggregationMode || 'average';
+    const label = AGG_LABELS[mode] || 'Avg';
+    const isNonDefault = mode !== 'average';
+    return `
+      <button class="agg-btn${isNonDefault ? ' active' : ''}"
+              data-action="toggle-aggregation"
+              title="Switch aggregation mode (current: ${mode})"
+              aria-label="Switch aggregation mode, currently ${mode}">${label}</button>
     `;
   }
 
@@ -2268,6 +2336,12 @@ class SensorHeatmapCard extends HTMLElement {
 
   // Handle all click events (event delegation)
   _handleClick(e) {
+    const aggBtn = e.target.closest('.agg-btn');
+    if (aggBtn) {
+      this._cycleAggregationMode();
+      return;
+    }
+
     const navBtn = e.target.closest('.nav-btn, .nav-btn-current');
     if (navBtn && !navBtn.disabled) {
       this._handleNavigation(navBtn.dataset.direction);
@@ -2290,6 +2364,18 @@ class SensorHeatmapCard extends HTMLElement {
       this._viewOffset = 0;
     }
     this._fetchHistoryData();
+  }
+
+  /**
+   * Cycle the active aggregation mode through average -> min -> max -> average.
+   * Re-processes the already-cached raw history data - no network fetch needed.
+   */
+  _cycleAggregationMode() {
+    const CYCLE = ['average', 'min', 'max'];
+    const currentIndex = CYCLE.indexOf(this._activeAggregationMode || 'average');
+    this._activeAggregationMode = CYCLE[(currentIndex + 1) % CYCLE.length];
+    this._processData();
+    this._render();
   }
 
   _handleCellClick(cellElement) {
@@ -2341,7 +2427,7 @@ class SensorHeatmapCard extends HTMLElement {
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
         <div>Temperature: ${temperature.toFixed(decimals)} ${unit}</div>
-        <div>Mode: ${this._config.aggregation_mode}</div>
+        <div>Mode: ${this._activeAggregationMode || 'average'}</div>
         ${partialNote}
         ${filledNote}
       `;

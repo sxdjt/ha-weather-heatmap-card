@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.0 (2026-05-12)
+
+### New Features
+
+- Added an interactive aggregation mode toggle button (Avg/Min/Max) to the card header for temperature, humidity, and generic cards. Clicking cycles through average, minimum, and maximum without a network request - the already-cached data is re-processed instantly. The button is highlighted when a non-default mode is active. The `aggregation_mode` config option continues to set the initial mode on load.
+
 ## v1.3.2 (2026-04-30)
 
 ### Bug Fixes

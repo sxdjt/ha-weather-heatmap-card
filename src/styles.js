@@ -98,6 +98,40 @@ export function createStyleElement() {
       pointer-events: none;
     }
 
+    /* Aggregation mode toggle button (Avg/Min/Max) */
+    .agg-btn {
+      background: transparent;
+      color: var(--secondary-text-color);
+      border: 1.5px solid var(--divider-color);
+      border-radius: 8px;
+      height: 30px;
+      min-width: 36px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .agg-btn:hover {
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
+      border-color: var(--primary-color);
+    }
+
+    /* Highlighted when not on the default 'average' mode */
+    .agg-btn.active {
+      background: var(--primary-color);
+      color: var(--text-primary-color, white);
+      border-color: var(--primary-color);
+    }
+
+    .agg-btn:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
     .date-range {
       font-size: 13px;
       font-weight: 500;
