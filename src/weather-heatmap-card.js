@@ -888,7 +888,7 @@ export class SensorHeatmapCard extends HTMLElement {
     const mode = this._activeAggregationMode || 'average';
     const label = AGG_LABELS[mode] || mode;
     return `
-      <button class="agg-btn"
+      <button class="nav-btn-current"
               data-action="toggle-aggregation"
               title="Switch aggregation mode (current: ${mode})"
               aria-label="Switch aggregation mode, currently ${mode}">${label}</button>
@@ -1181,7 +1181,9 @@ export class SensorHeatmapCard extends HTMLElement {
 
   // Handle all click events (event delegation)
   _handleClick(e) {
-    const aggBtn = e.target.closest('.agg-btn');
+    // Check for aggregation toggle before the nav-btn-current check since the
+    // agg button reuses that class - data-action is the reliable discriminator.
+    const aggBtn = e.target.closest('[data-action="toggle-aggregation"]');
     if (aggBtn) {
       this._cycleAggregationMode();
       return;

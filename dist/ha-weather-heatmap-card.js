@@ -1,4 +1,4 @@
-/* Last modified: 12-May-2026 15:30 */
+/* Last modified: 12-May-2026 15:34 */
 // Card CSS styles
 
 /**
@@ -72,8 +72,7 @@ function createStyleElement() {
       outline-offset: 2px;
     }
 
-    .nav-btn-current,
-    .agg-btn {
+    .nav-btn-current {
       background: transparent;
       color: var(--primary-color);
       border: 1.5px solid var(--primary-color);
@@ -85,14 +84,12 @@ function createStyleElement() {
       transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .nav-btn-current:hover,
-    .agg-btn:hover {
+    .nav-btn-current:hover {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
     }
 
-    .nav-btn-current:focus,
-    .agg-btn:focus {
+    .nav-btn-current:focus {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }
@@ -672,7 +669,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.4.4';
+const VERSION = '1.4.5';
 
 // Color parsing, interpolation, and utility functions
 
@@ -2043,7 +2040,7 @@ class SensorHeatmapCard extends HTMLElement {
     const mode = this._activeAggregationMode || 'average';
     const label = AGG_LABELS[mode] || mode;
     return `
-      <button class="agg-btn"
+      <button class="nav-btn-current"
               data-action="toggle-aggregation"
               title="Switch aggregation mode (current: ${mode})"
               aria-label="Switch aggregation mode, currently ${mode}">${label}</button>
@@ -2336,7 +2333,9 @@ class SensorHeatmapCard extends HTMLElement {
 
   // Handle all click events (event delegation)
   _handleClick(e) {
-    const aggBtn = e.target.closest('.agg-btn');
+    // Check for aggregation toggle before the nav-btn-current check since the
+    // agg button reuses that class - data-action is the reliable discriminator.
+    const aggBtn = e.target.closest('[data-action="toggle-aggregation"]');
     if (aggBtn) {
       this._cycleAggregationMode();
       return;

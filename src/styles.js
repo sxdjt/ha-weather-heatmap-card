@@ -71,8 +71,7 @@ export function createStyleElement() {
       outline-offset: 2px;
     }
 
-    .nav-btn-current,
-    .agg-btn {
+    .nav-btn-current {
       background: transparent;
       color: var(--primary-color);
       border: 1.5px solid var(--primary-color);
@@ -84,14 +83,12 @@ export function createStyleElement() {
       transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .nav-btn-current:hover,
-    .agg-btn:hover {
+    .nav-btn-current:hover {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
     }
 
-    .nav-btn-current:focus,
-    .agg-btn:focus {
+    .nav-btn-current:focus {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }

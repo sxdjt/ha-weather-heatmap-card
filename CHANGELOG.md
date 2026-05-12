@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.5 (2026-05-12)
+
+### Bug Fixes
+
+- Aggregation toggle button now uses the `nav-btn-current` class directly instead of a separate `.agg-btn` class. This guarantees pixel-identical rendering since both buttons share exactly the same CSS rules. Click handling is discriminated by `data-action` attribute rather than class name.
+
 ## v1.4.4 (2026-05-12)
 
 ### Bug Fixes
