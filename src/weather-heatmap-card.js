@@ -246,11 +246,11 @@ export class SensorHeatmapCard extends HTMLElement {
     this._config.color_thresholds = [...this._config.color_thresholds].sort((a, b) => a.value - b.value);
 
     // Initialize active aggregation mode from config.
-    // Wind cards don't use this (they always aggregate by max speed).
-    if (['temperature', 'humidity', 'generic'].includes(card_type)) {
-      this._activeAggregationMode = config.aggregation_mode || 'average';
+    // Wind defaults to 'max' (peak gust); other types default to 'average'.
+    if (card_type === 'windspeed') {
+      this._activeAggregationMode = 'max';
     } else {
-      this._activeAggregationMode = null;
+      this._activeAggregationMode = config.aggregation_mode || 'average';
     }
 
     if (this._hass) {
@@ -501,10 +501,14 @@ export class SensorHeatmapCard extends HTMLElement {
         ? (statsResult[this._config.direction_entity] || [])
         : [];
 
+      // Store all three HA pre-computed stats per hourly bucket so the aggregation
+      // toggle can switch between them without a refetch.
       const speedData = speedStats.map(stat => ({
         last_changed: stat.start,
-        state: String(stat[statisticType] ?? stat.mean ?? ''),
-      })).filter(p => p.state !== '' && p.state !== 'null');
+        mean: stat.mean ?? null,
+        max: stat.max ?? null,
+        min: stat.min ?? null,
+      })).filter(p => p.mean !== null || p.max !== null || p.min !== null);
 
       const directionData = directionStats.map(stat => ({
         last_changed: stat.start,
@@ -657,26 +661,40 @@ export class SensorHeatmapCard extends HTMLElement {
   }
 
   _processWindData() {
-    const { speed, direction, startTime, partialBucketKey } = this._historyData;
+    const { speed, direction, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
+    const activeMode = this._activeAggregationMode || 'max';
+    const isStatistics = dataSource === 'statistics';
+
+    // Maps toggle mode to the HA statistics field name (statistics path only)
+    const modeToStatField = { average: 'mean', max: 'max', min: 'min' };
+    const statField = modeToStatField[activeMode] || 'max';
 
     const grid = {};
 
-    // Process speed data - track maximum speed per bucket (peak gust is most relevant)
+    // Process speed data.
+    // Statistics path: each point covers exactly one HA hourly bucket with pre-computed
+    //   mean/max/min - select the relevant field so toggling modes needs no refetch.
+    // History path: multiple raw readings may fall in one bucket - track all stats so
+    //   any aggregation mode can be applied without re-fetching.
     speed.forEach(point => {
       const timestamp = new Date(point.last_changed || point.last_updated);
       const dateKey = getDateKey(timestamp);
       const hourKey = getHourBucket(timestamp.getHours(), intervalHours);
       const key = `${dateKey}_${hourKey}`;
 
-      if (!grid[key]) grid[key] = { maxSpeed: null, directions: [] };
+      if (!grid[key]) grid[key] = { sum: 0, count: 0, min: null, max: null, directions: [] };
 
-      const value = parseFloat(point.state);
+      const value = isStatistics
+        ? parseFloat(point[statField] ?? point.mean ?? '')
+        : parseFloat(point.state);
+
       if (!isNaN(value)) {
-        if (grid[key].maxSpeed === null || value > grid[key].maxSpeed) {
-          grid[key].maxSpeed = value;
-        }
+        grid[key].sum += value;
+        grid[key].count += 1;
+        grid[key].min = grid[key].min === null ? value : Math.min(grid[key].min, value);
+        grid[key].max = grid[key].max === null ? value : Math.max(grid[key].max, value);
       }
     });
 
@@ -695,9 +713,25 @@ export class SensorHeatmapCard extends HTMLElement {
       });
     }
 
-    // Calculate circular mean direction for each bucket
+    // Compute final speed and direction for each bucket.
+    // Statistics path: count=1 per bucket (one HA hourly stat already selected by statField),
+    //   so avg=min=max=that value; use avg for simplicity.
+    // History path: apply active aggregation mode across all readings in the bucket.
     Object.keys(grid).forEach(key => {
       const bucket = grid[key];
+      if (bucket.count > 0) {
+        if (isStatistics) {
+          bucket.speed = bucket.sum / bucket.count;
+        } else {
+          switch (activeMode) {
+            case 'min':     bucket.speed = bucket.min; break;
+            case 'average': bucket.speed = bucket.sum / bucket.count; break;
+            default:        bucket.speed = bucket.max; break;  // 'max' is wind default
+          }
+        }
+      } else {
+        bucket.speed = null;
+      }
       bucket.avgDirection = bucket.directions.length > 0
         ? averageDirection(bucket.directions)
         : null;
@@ -718,9 +752,9 @@ export class SensorHeatmapCard extends HTMLElement {
           const bucket = grid[key];
           const cell = {
             date,
-            speed: bucket?.maxSpeed ?? null,
+            speed: bucket?.speed ?? null,
             direction: bucket?.avgDirection ?? null,
-            hasData: bucket && bucket.maxSpeed !== null,
+            hasData: bucket && bucket.speed !== null,
             isPartial: partialBucketKey && key === partialBucketKey
           };
           if (cell.speed !== null) allSpeeds.push(cell.speed);
@@ -827,8 +861,6 @@ export class SensorHeatmapCard extends HTMLElement {
     const canGoForward = this._viewOffset < 0;
     const showCurrentButton = this._viewOffset < 0;
     const dateRange = this._getDateRangeLabel();
-    const showAggToggle = this._config.card_type !== 'windspeed';
-
     return `
       <div class="nav-controls">
         <button class="nav-btn" data-direction="back" aria-label="Previous period">&#8592;</button>
@@ -840,7 +872,7 @@ export class SensorHeatmapCard extends HTMLElement {
                 data-direction="current"
                 aria-label="Jump to current"
                 ${showCurrentButton ? '' : 'aria-hidden="true"'}>Current</button>
-        ${showAggToggle ? this._renderAggregationToggle() : ''}
+        ${this._renderAggregationToggle()}
       </div>
     `;
   }
@@ -854,8 +886,10 @@ export class SensorHeatmapCard extends HTMLElement {
   _renderAggregationToggle() {
     const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
     const mode = this._activeAggregationMode || 'average';
-    const label = AGG_LABELS[mode] || 'Avg';
-    const isNonDefault = mode !== 'average';
+    const label = AGG_LABELS[mode] || mode;
+    // Wind defaults to max; all other types default to average
+    const defaultMode = this._config.card_type === 'windspeed' ? 'max' : 'average';
+    const isNonDefault = mode !== defaultMode;
     return `
       <button class="agg-btn${isNonDefault ? ' active' : ''}"
               data-action="toggle-aggregation"
@@ -1231,6 +1265,7 @@ export class SensorHeatmapCard extends HTMLElement {
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
         <div>Speed: ${speed.toFixed(1)} ${unit}${dirText}</div>
+        <div>Mode: ${this._activeAggregationMode || 'max'}</div>
         ${partialNote}
       `;
     } else {

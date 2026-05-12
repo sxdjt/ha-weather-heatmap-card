@@ -18,7 +18,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Configurable time periods (1-365 days) and intervals (1-24 hours)
 - Long-term statistics support (data beyond recorder history)
 - Navigation between time periods (previous/next/current)
-- Interactive Avg/Min/Max toggle button in the header - switches display mode instantly without refetching data
+- Interactive Avg/Min/Max toggle button in the header for all card types - switches display mode instantly without refetching data
 - Min/Max/Avg statistics footer with legend bar
 - Compact mode and cell sizing customization
 - Tooltip on cell click
@@ -35,6 +35,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Auto-detection of unit (mph, km/h, m/s, knots) with matching thresholds
 - Optional wind direction overlay (arrow, cardinal, or degrees)
 - Circular mean averaging for direction data
+- Max/Avg/Min toggle in header (defaults to Max for peak gust display)
 
 **Humidity mode** (`card_type: humidity`):
 - Comfort-based color scale: yellow for dry (0-30%), green for comfortable (30-50%), yellow/orange/red for humid (above 55%)
@@ -220,7 +221,7 @@ Thresholds are automatically selected based on the detected unit (mph, km/h, m/s
 
 Two independent settings control how data is summarized:
 
-**Aggregation Mode** (`aggregation_mode`): How raw sensor readings within a single time cell are combined when using history API data. For example, with a 2-hour cell and `average`, all readings from 14:00-15:59 are averaged together. The `aggregation_mode` option sets the initial mode; you can also toggle it on the fly using the **Avg/Min/Max button** in the card header (temperature, humidity, and generic cards only). The button is highlighted in the accent color when a non-default mode is active.
+**Aggregation Mode** (`aggregation_mode`): How raw sensor readings within a single time cell are combined when using history API data. For example, with a 2-hour cell and `average`, all readings from 14:00-15:59 are averaged together. The `aggregation_mode` option sets the initial mode; you can also toggle it on the fly using the **Avg/Min/Max button** in the card header (all card types). Wind cards default to Max (peak gust) and cycle Max/Avg/Min. The button fills with the accent color when a non-default mode is active.
 
 **Statistic Type** (`statistic_type`): Which pre-computed value to fetch when using long-term statistics (data older than your recorder's `purge_keep_days`). Home Assistant records hourly mean, min, and max for statistics-enabled entities.
 

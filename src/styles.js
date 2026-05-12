@@ -98,33 +98,28 @@ export function createStyleElement() {
       pointer-events: none;
     }
 
-    /* Aggregation mode toggle button (Avg/Min/Max) */
+    /* Aggregation mode toggle button (Avg/Min/Max) - matches nav-btn-current pill style */
     .agg-btn {
       background: transparent;
-      color: var(--secondary-text-color);
-      border: 1.5px solid var(--divider-color);
+      color: var(--primary-color);
+      border: 1.5px solid var(--primary-color);
       border-radius: 8px;
-      height: 30px;
-      min-width: 36px;
-      padding: 0 8px;
+      padding: 5px 10px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      letter-spacing: 0.3px;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease;
     }
 
     .agg-btn:hover {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
-      border-color: var(--primary-color);
     }
 
-    /* Highlighted when not on the default 'average' mode */
+    /* Filled when not on the card-type default mode */
     .agg-btn.active {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
-      border-color: var(--primary-color);
     }
 
     .agg-btn:focus {

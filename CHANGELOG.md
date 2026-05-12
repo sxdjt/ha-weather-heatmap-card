@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.4.1 (2026-05-12)
+
+### New Features
+
+- Aggregation mode toggle (Avg/Min/Max) now works on wind speed cards. For statistics data, all three HA pre-computed values (mean/max/min) are fetched in one request so switching is instant. For history API data, all three are computed from raw readings in the same pass. Wind defaults to Max (peak gust).
+
+### Improvements
+
+- Aggregation toggle button now uses the same pill style as the "Current" navigation button - primary color outline, fills solid when active or on hover.
+
 ## v1.4.0 (2026-05-12)
 
 ### New Features
