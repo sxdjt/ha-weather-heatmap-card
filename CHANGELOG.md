@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.2 (2026-05-12)
+
+### Bug Fixes
+
+- Aggregation toggle button now shares the exact same CSS rules as the "Current" navigation pill rather than duplicating them. This fixes a visual inconsistency where the toggle border appeared thicker than "Current" due to native browser button styles not being fully overridden.
+
 ## v1.4.1 (2026-05-12)
 
 ### New Features

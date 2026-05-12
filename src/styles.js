@@ -71,34 +71,7 @@ export function createStyleElement() {
       outline-offset: 2px;
     }
 
-    .nav-btn-current {
-      background: transparent;
-      color: var(--primary-color);
-      border: 1.5px solid var(--primary-color);
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-
-    .nav-btn-current:hover {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
-    }
-
-    .nav-btn-current:focus {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-
-    .nav-btn-current.hidden {
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    /* Aggregation mode toggle button (Avg/Min/Max) - matches nav-btn-current pill style */
+    .nav-btn-current,
     .agg-btn {
       background: transparent;
       color: var(--primary-color);
@@ -111,20 +84,27 @@ export function createStyleElement() {
       transition: background 0.15s ease, color 0.15s ease;
     }
 
+    .nav-btn-current:hover,
     .agg-btn:hover {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
+    }
+
+    .nav-btn-current:focus,
+    .agg-btn:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .nav-btn-current.hidden {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     /* Filled when not on the card-type default mode */
     .agg-btn.active {
       background: var(--primary-color);
       color: var(--text-primary-color, white);
-    }
-
-    .agg-btn:focus {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
     }
 
     .date-range {
