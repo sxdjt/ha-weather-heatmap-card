@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.4 (2026-05-12)
+
+### Bug Fixes
+
+- Removed the filled active-state styling from the aggregation toggle button entirely. HA's rendering environment causes the button to grow when a background color is applied. The current mode is now communicated solely by the button label (Avg/Min/Max), and the button always renders identically to the "Current" pill.
+
 ## v1.4.3 (2026-05-12)
 
 ### Bug Fixes

@@ -887,11 +887,8 @@ export class SensorHeatmapCard extends HTMLElement {
     const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
     const mode = this._activeAggregationMode || 'average';
     const label = AGG_LABELS[mode] || mode;
-    // Wind defaults to max; all other types default to average
-    const defaultMode = this._config.card_type === 'windspeed' ? 'max' : 'average';
-    const isNonDefault = mode !== defaultMode;
     return `
-      <button class="agg-btn${isNonDefault ? ' agg-non-default' : ''}"
+      <button class="agg-btn"
               data-action="toggle-aggregation"
               title="Switch aggregation mode (current: ${mode})"
               aria-label="Switch aggregation mode, currently ${mode}">${label}</button>

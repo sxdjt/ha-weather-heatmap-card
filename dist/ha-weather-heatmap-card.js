@@ -1,4 +1,4 @@
-/* Last modified: 12-May-2026 15:27 */
+/* Last modified: 12-May-2026 15:30 */
 // Card CSS styles
 
 /**
@@ -100,12 +100,6 @@ function createStyleElement() {
     .nav-btn-current.hidden {
       visibility: hidden;
       pointer-events: none;
-    }
-
-    /* Filled when not on the card-type default mode */
-    .agg-btn.agg-non-default {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
     }
 
     .date-range {
@@ -678,7 +672,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.4.3';
+const VERSION = '1.4.4';
 
 // Color parsing, interpolation, and utility functions
 
@@ -2048,11 +2042,8 @@ class SensorHeatmapCard extends HTMLElement {
     const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
     const mode = this._activeAggregationMode || 'average';
     const label = AGG_LABELS[mode] || mode;
-    // Wind defaults to max; all other types default to average
-    const defaultMode = this._config.card_type === 'windspeed' ? 'max' : 'average';
-    const isNonDefault = mode !== defaultMode;
     return `
-      <button class="agg-btn${isNonDefault ? ' agg-non-default' : ''}"
+      <button class="agg-btn"
               data-action="toggle-aggregation"
               title="Switch aggregation mode (current: ${mode})"
               aria-label="Switch aggregation mode, currently ${mode}">${label}</button>
