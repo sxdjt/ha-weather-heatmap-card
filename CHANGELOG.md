@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.4.1 (2026-05-13)
+
+### Bug Fixes
+
+- Editor number and text fields (Cell Height, Cell Gap, Start Hour, Decimals, etc.) were invisible in HA 2026.5.1 due to `ha-textfield` being removed. Replaced with `ha-selector` using `number`/`text` selector types. Threshold row value inputs replaced with styled native `<input type="number">`.
+- Setting `cell_gap: 0` had no effect when `compact: true` because the compact sizing override hardcoded `cellGap: 1px` and ignored all configured cell dimensions. The compact override has been removed; `compact` now only affects header/footer styling (which was already handled by CSS). Cell sizing is always taken from config.
+- Rounded corners now automatically disable when `cell_gap` is 0. With zero gap, 6px border-radius on adjacent cells creates visible "pinch" artifacts where the card background shows through at cell corners.
+- Cell sizing (gap, height, column widths) is now also applied directly as inline styles on the `.data-grid` element, in addition to CSS custom properties, to ensure values take effect regardless of CSS variable inheritance behavior.
+
 ## v1.4.0 (2026-05-12)
 
 ### New Features

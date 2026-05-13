@@ -26,7 +26,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       // Propagate updated hass to all ha-selector and ha-entity-picker inputs
       for (const key in this.fields) {
         const { input, type } = this.fields[key];
-        if (input && (type === 'select' || type === 'entity')) {
+        if (input && (type === 'select' || type === 'entity' || type === 'number' || type === 'text')) {
           input.hass = hass;
         }
       }
@@ -286,7 +286,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
     } else {
       // ha-selector renders its own label; other types get an explicit <label>
-      if (type !== 'select') {
+      if (type !== 'select' && type !== 'number' && type !== 'text') {
         const lbl = document.createElement('label');
         lbl.textContent = label;
         wrapper.appendChild(lbl);
@@ -303,15 +303,21 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         });
 
       } else if (type === 'number' || type === 'text') {
-        input = document.createElement('ha-textfield');
-        input.type = type;
-        if (min !== undefined) input.min = min;
-        if (max !== undefined) input.max = max;
-        if (required) input.required = true;
+        input = document.createElement('ha-selector');
+        input.hass = this._hass;
+        input.label = label;
+        if (type === 'number') {
+          const selectorConfig = { mode: 'box', step: 1 };
+          if (min !== undefined) selectorConfig.min = min;
+          if (max !== undefined) selectorConfig.max = max;
+          input.selector = { number: selectorConfig };
+        } else {
+          input.selector = { text: {} };
+        }
 
-        input.addEventListener('change', (e) => {
+        input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          const value = type === 'number' ? Number(input.value) : input.value;
+          const value = type === 'number' ? Number(e.detail.value) : e.detail.value;
           this._onFieldChange(key, value);
         });
 
@@ -406,9 +412,15 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       row.style.alignItems = 'center';
       row.style.gap = '8px';
 
-      const valueInput = document.createElement('ha-textfield');
+      const valueInput = document.createElement('input');
       valueInput.type = 'number';
       valueInput.value = threshold.value;
+      valueInput.style.width = '80px';
+      valueInput.style.background = 'var(--card-background-color, #fff)';
+      valueInput.style.color = 'var(--primary-text-color)';
+      valueInput.style.border = '1px solid var(--divider-color, #e0e0e0)';
+      valueInput.style.borderRadius = '4px';
+      valueInput.style.padding = '6px 8px';
       valueInput.addEventListener('change', (e) => {
         e.stopPropagation();
         const newThresholds = [...this._config.color_thresholds];

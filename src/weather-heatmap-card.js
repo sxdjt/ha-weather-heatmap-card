@@ -853,7 +853,19 @@ export class SensorHeatmapCard extends HTMLElement {
       this._content.style.setProperty('--cell-padding', sizing.cellPadding);
       this._content.style.setProperty('--cell-gap', sizing.cellGap);
       this._content.style.setProperty('--cell-font-size', sizing.cellFontSize);
-      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners ? '6px' : '0');
+      // Rounded corners only make sense with a visible gap; when gap is 0
+      // the curved edges of adjacent cells reveal the card background and look like lines.
+      const gapIsZero = parseFloat(sizing.cellGap) === 0;
+      this._content.style.setProperty('--cell-border-radius', this._config.rounded_corners && !gapIsZero ? '6px' : '0');
+
+      // Apply sizing directly on the grid element in addition to CSS variables,
+      // in case CSS variable inheritance through ha-card is unreliable.
+      const dataGrid = this._content.querySelector('.data-grid');
+      if (dataGrid) {
+        dataGrid.style.gap = sizing.cellGap;
+        dataGrid.style.gridAutoRows = sizing.cellHeight;
+        dataGrid.style.gridTemplateColumns = `repeat(${this._config.days}, ${sizing.cellWidth})`;
+      }
     }
   }
 
@@ -1295,15 +1307,6 @@ export class SensorHeatmapCard extends HTMLElement {
   }
 
   _getEffectiveSizing() {
-    if (this._config.compact) {
-      return {
-        cellHeight: '24px',
-        cellWidth: '1fr',
-        cellPadding: '1px',
-        cellGap: '1px',
-        cellFontSize: '9px',
-      };
-    }
     return {
       cellHeight: normalizeSize(this._config.cell_height, '36px'),
       cellWidth: normalizeSize(this._config.cell_width, '1fr'),
