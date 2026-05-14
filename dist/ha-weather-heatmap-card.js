@@ -1,4 +1,4 @@
-/* Last modified: 13-May-2026 23:12 */
+/* Last modified: 13-May-2026 23:31 */
 // Card CSS styles
 
 /**
@@ -482,14 +482,10 @@ function createStyleElement() {
       font-size: 11px;
     }
 
-    /* Responsive adjustments */
+    /* Responsive adjustments - font sizes only; heights are controlled by
+       cell_height config so auto-scaling would desync time labels from data cells */
     @media (max-width: 600px) {
-      .data-grid {
-        grid-auto-rows: calc(var(--cell-height, 36px) * 0.83);
-      }
-
       .time-label {
-        height: calc(var(--cell-height, 36px) * 0.83);
         font-size: calc(var(--cell-font-size, 11px) * 0.91);
       }
 
@@ -668,7 +664,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 
 // Color parsing, interpolation, and utility functions
 

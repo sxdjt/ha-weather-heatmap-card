@@ -481,14 +481,10 @@ export function createStyleElement() {
       font-size: 11px;
     }
 
-    /* Responsive adjustments */
+    /* Responsive adjustments - font sizes only; heights are controlled by
+       cell_height config so auto-scaling would desync time labels from data cells */
     @media (max-width: 600px) {
-      .data-grid {
-        grid-auto-rows: calc(var(--cell-height, 36px) * 0.83);
-      }
-
       .time-label {
-        height: calc(var(--cell-height, 36px) * 0.83);
         font-size: calc(var(--cell-font-size, 11px) * 0.91);
       }
 

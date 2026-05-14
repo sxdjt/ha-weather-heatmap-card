@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.1 (2026-05-14)
+
+### Bug Fixes
+
+- Fixed time label column drifting out of sync with data rows on narrow screens (Android companion app). The responsive CSS was shrinking `.time-label` heights at viewport widths below 600px, but an inline style on `.data-grid` prevented the same scaling from applying to the grid rows, causing the two columns to accumulate ~5px of drift per row. Cell heights are now controlled exclusively by the `cell_height` config value, consistent across all viewports.
+
 ## v1.5.0 (2026-05-13)
 
 ### New Features
