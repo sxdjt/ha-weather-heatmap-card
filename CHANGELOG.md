@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.5.0 (2026-05-13)
+
+### New Features
+
+- Added `show_footer` option (default: `true`) to show or hide the Min/Max/Avg statistics footer panel. Also exposed in the visual editor as "Show Footer (Min/Max/Avg)".
+
+### Bug Fixes
+
+- Fixed time label column misalignment in the Android companion app and at non-default system font sizes. The previous layout used a hardcoded `padding-top: 28px` to offset the time labels below the date-header row - a magic number that breaks when font metrics differ across environments. The layout has been restructured as a proper 2x2 CSS Grid so the browser aligns the time labels automatically, with no pixel offset required.
+- Date column headers now use `cell_gap` and `cell_width` to match the data grid exactly. Previously, the date headers had a hardcoded `gap: 2px` and `1fr` column widths regardless of config, causing a slight column misalignment when those values were customized.
+
 ## v1.4.1 (2026-05-13)
 
 ### Bug Fixes

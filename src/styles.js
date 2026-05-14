@@ -120,12 +120,20 @@ export function createStyleElement() {
       margin-bottom: 12px;
     }
 
-    /* Grid wrapper with time labels and data grid */
+    /* Grid wrapper: 2x2 grid so date-headers row and time-labels row
+       share the same row height — no magic pixel offset needed */
     .grid-wrapper {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 8px;
+      grid-template-rows: auto 1fr;
+      column-gap: 8px;
+      row-gap: 4px;
       align-items: start;
+    }
+
+    /* Empty top-left cell that sizes to match the date-headers row height */
+    .date-header-spacer {
+      /* intentionally empty */
     }
 
     /* Time labels column */
@@ -133,7 +141,6 @@ export function createStyleElement() {
       display: flex;
       flex-direction: column;
       gap: var(--cell-gap, 2px);
-      padding-top: 28px;  /* Align with data grid (after date headers) */
     }
 
     .time-label {
@@ -149,19 +156,11 @@ export function createStyleElement() {
       letter-spacing: 0.1px;
     }
 
-    /* Data grid container */
-    .data-grid-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     /* Date headers row */
     .date-headers {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), 1fr);
-      gap: 2px;
-      margin-bottom: 4px;
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      gap: var(--cell-gap, 2px);
     }
 
     .date-header {

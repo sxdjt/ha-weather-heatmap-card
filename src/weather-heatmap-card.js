@@ -196,6 +196,7 @@ export class SensorHeatmapCard extends HTMLElement {
       show_entity_name: config.show_entity_name || false,
       show_legend: config.show_legend || false,
       show_month_year: config.show_month_year !== false,  // Default true
+      show_footer: config.show_footer !== false,           // Default true
 
       // Cell sizing
       cell_height: config.cell_height !== undefined ? config.cell_height : 36,
@@ -840,7 +841,7 @@ export class SensorHeatmapCard extends HTMLElement {
       ${this._error ? this._renderError() : ''}
       ${this._processedData && !this._error ? this._renderGrid() : ''}
       ${this._processedData && !this._error && this._config.show_legend ? this._renderLegend() : ''}
-      ${this._processedData && !this._error ? this._renderFooter() : ''}
+      ${this._processedData && !this._error && this._config.show_footer ? this._renderFooter() : ''}
     `;
 
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
@@ -947,11 +948,10 @@ export class SensorHeatmapCard extends HTMLElement {
       <div class="heatmap-grid">
         ${monthHeader}
         <div class="grid-wrapper">
+          <div class="date-header-spacer"></div>
+          <div class="date-headers">${dateHeaders}</div>
           <div class="time-labels">${timeLabels}</div>
-          <div class="data-grid-container">
-            <div class="date-headers">${dateHeaders}</div>
-            <div class="data-grid">${dataCells}</div>
-          </div>
+          <div class="data-grid">${dataCells}</div>
         </div>
       </div>
     `;

@@ -128,6 +128,7 @@ entity: sensor.wind_speed
 | `refresh_interval` | number | `300` | Refresh interval in seconds |
 | `rounded_corners` | boolean | `true` | Rounded cell corners |
 | `show_entity_name` | boolean | `false` | Show entity name in footer |
+| `show_footer` | boolean | `true` | Show Min/Max/Avg statistics footer panel |
 | `show_legend` | boolean | `false` | Show color legend bar |
 | `show_month_year` | boolean | `true` | Show month/year label above the grid |
 | `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |

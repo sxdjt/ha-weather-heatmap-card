@@ -1,4 +1,4 @@
-/* Last modified: 13-May-2026 13:17 */
+/* Last modified: 13-May-2026 23:12 */
 // Card CSS styles
 
 /**
@@ -121,12 +121,20 @@ function createStyleElement() {
       margin-bottom: 12px;
     }
 
-    /* Grid wrapper with time labels and data grid */
+    /* Grid wrapper: 2x2 grid so date-headers row and time-labels row
+       share the same row height — no magic pixel offset needed */
     .grid-wrapper {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 8px;
+      grid-template-rows: auto 1fr;
+      column-gap: 8px;
+      row-gap: 4px;
       align-items: start;
+    }
+
+    /* Empty top-left cell that sizes to match the date-headers row height */
+    .date-header-spacer {
+      /* intentionally empty */
     }
 
     /* Time labels column */
@@ -134,7 +142,6 @@ function createStyleElement() {
       display: flex;
       flex-direction: column;
       gap: var(--cell-gap, 2px);
-      padding-top: 28px;  /* Align with data grid (after date headers) */
     }
 
     .time-label {
@@ -150,19 +157,11 @@ function createStyleElement() {
       letter-spacing: 0.1px;
     }
 
-    /* Data grid container */
-    .data-grid-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     /* Date headers row */
     .date-headers {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), 1fr);
-      gap: 2px;
-      margin-bottom: 4px;
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      gap: var(--cell-gap, 2px);
     }
 
     .date-header {
@@ -669,7 +668,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.4.1';
+const VERSION = '1.5.0';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1348,6 +1347,7 @@ class SensorHeatmapCard extends HTMLElement {
       show_entity_name: config.show_entity_name || false,
       show_legend: config.show_legend || false,
       show_month_year: config.show_month_year !== false,  // Default true
+      show_footer: config.show_footer !== false,           // Default true
 
       // Cell sizing
       cell_height: config.cell_height !== undefined ? config.cell_height : 36,
@@ -1992,7 +1992,7 @@ class SensorHeatmapCard extends HTMLElement {
       ${this._error ? this._renderError() : ''}
       ${this._processedData && !this._error ? this._renderGrid() : ''}
       ${this._processedData && !this._error && this._config.show_legend ? this._renderLegend() : ''}
-      ${this._processedData && !this._error ? this._renderFooter() : ''}
+      ${this._processedData && !this._error && this._config.show_footer ? this._renderFooter() : ''}
     `;
 
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
@@ -2099,11 +2099,10 @@ class SensorHeatmapCard extends HTMLElement {
       <div class="heatmap-grid">
         ${monthHeader}
         <div class="grid-wrapper">
+          <div class="date-header-spacer"></div>
+          <div class="date-headers">${dateHeaders}</div>
           <div class="time-labels">${timeLabels}</div>
-          <div class="data-grid-container">
-            <div class="date-headers">${dateHeaders}</div>
-            <div class="data-grid">${dataCells}</div>
-          </div>
+          <div class="data-grid">${dataCells}</div>
         </div>
       </div>
     `;
@@ -2526,6 +2525,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
       show_entity_name: false,
       show_month_year: true,
       show_legend: false,
+      show_footer: true,
       cell_height: 36,
       cell_width: '1fr',
       cell_padding: 2,
@@ -2623,6 +2623,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'switch', key: 'show_entity_name', label: 'Show Entity Name' },
       { type: 'switch', key: 'show_month_year', label: 'Show Month/Year Label' },
       { type: 'switch', key: 'show_legend', label: 'Show Legend' },
+      { type: 'switch', key: 'show_footer', label: 'Show Footer (Min/Max/Avg)' },
       { type: 'number', key: 'cell_height', label: 'Cell Height', min: 10, max: 200 },
       { type: 'text', key: 'cell_width', label: 'Cell Width (px or fr)' },
       { type: 'number', key: 'cell_padding', label: 'Cell Padding', min: 0, max: 20 },
