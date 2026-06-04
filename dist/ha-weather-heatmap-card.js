@@ -1,4 +1,4 @@
-/* Last modified: 13-May-2026 23:31 */
+/* Last modified: 04-Jun-2026 13:06 */
 // Card CSS styles
 
 /**
@@ -664,7 +664,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.5.1';
+const VERSION = '1.6.0';
 
 // Color parsing, interpolation, and utility functions
 
@@ -2985,6 +2985,30 @@ window.customCards.push(
     name: 'Weather Heatmap Card',
     description: 'Heatmap visualization for temperature or wind speed sensors',
     preview: false,
+
+    // Suggest this card when the user picks a sensor whose device_class matches
+    // a supported card_type. Only these three device classes are a clear fit -
+    // generic sensors are not suggested since there is no device class to match on.
+    getEntitySuggestion: (hass, entityId) => {
+      const entityState = hass.states[entityId];
+      if (!entityState) return null;
+
+      if (entityId.split('.')[0] !== 'sensor') return null;
+
+      const deviceClass = entityState.attributes.device_class;
+
+      if (deviceClass === 'temperature') {
+        return { config: { type: 'custom:ha-weather-heatmap-card', entity: entityId, card_type: 'temperature' } };
+      }
+      if (deviceClass === 'wind_speed') {
+        return { config: { type: 'custom:ha-weather-heatmap-card', entity: entityId, card_type: 'windspeed' } };
+      }
+      if (deviceClass === 'humidity') {
+        return { config: { type: 'custom:ha-weather-heatmap-card', entity: entityId, card_type: 'humidity' } };
+      }
+
+      return null;
+    }
   },
   {
     type: 'ha-temperature-heatmap-card',

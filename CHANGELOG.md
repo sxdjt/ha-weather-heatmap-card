@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.0 (2026-06-04)
+
+### New Features
+
+- Card suggestion support for HA 2026.6+: the card now appears in the "Community" section of the card picker when the user selects a `temperature`, `wind_speed`, or `humidity` sensor. The suggestion automatically sets `card_type` to match the entity's device class.
+
 ## v1.5.1 (2026-05-14)
 
 ### Bug Fixes
