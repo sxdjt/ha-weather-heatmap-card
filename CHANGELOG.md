@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.1 (2026-06-09)
+
+### Bug Fixes
+
+- Fixed wind speed cells showing lower-than-actual peak values when `time_interval` is greater than 1 and `data_source` is `auto` or `statistics`. With a 2-hour interval, two HA hourly stat buckets land in each heatmap cell; the statistics path was always averaging those values regardless of the configured aggregation mode. Wind cards default to `max` aggregation (peak gust), so a cell spanning 04:00-05:59 would show the average of the two hourly peaks instead of the highest peak. The statistics path now applies the same aggregation logic as the history path.
+
 ## v1.6.0 (2026-06-04)
 
 ### New Features

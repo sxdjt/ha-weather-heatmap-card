@@ -1,4 +1,4 @@
-/* Last modified: 04-Jun-2026 13:06 */
+/* Last modified: 09-Jun-2026 09:22 */
 // Card CSS styles
 
 /**
@@ -664,7 +664,7 @@ function getWindThresholdsForUnit(unit) {
 }
 
 // Card version
-const VERSION = '1.6.0';
+const VERSION = '1.6.1';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1862,20 +1862,17 @@ class SensorHeatmapCard extends HTMLElement {
     }
 
     // Compute final speed and direction for each bucket.
-    // Statistics path: count=1 per bucket (one HA hourly stat already selected by statField),
-    //   so avg=min=max=that value; use avg for simplicity.
-    // History path: apply active aggregation mode across all readings in the bucket.
+    // Both history and statistics paths apply the same aggregation logic.
+    // With time_interval > 1, multiple HA hourly stat buckets may land in the same
+    // heatmap cell (e.g. time_interval: 2 gives two hourly stats per cell), so the
+    // statistics path must aggregate just like the history path does.
     Object.keys(grid).forEach(key => {
       const bucket = grid[key];
       if (bucket.count > 0) {
-        if (isStatistics) {
-          bucket.speed = bucket.sum / bucket.count;
-        } else {
-          switch (activeMode) {
-            case 'min':     bucket.speed = bucket.min; break;
-            case 'average': bucket.speed = bucket.sum / bucket.count; break;
-            default:        bucket.speed = bucket.max; break;  // 'max' is wind default
-          }
+        switch (activeMode) {
+          case 'min':     bucket.speed = bucket.min; break;
+          case 'average': bucket.speed = bucket.sum / bucket.count; break;
+          default:        bucket.speed = bucket.max; break;  // 'max' is wind default
         }
       } else {
         bucket.speed = null;
