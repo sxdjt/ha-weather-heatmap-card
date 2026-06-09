@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.2 (2026-06-09)
+
+### Bug Fixes
+
+- Added `getGridOptions()` method to suppress the "This card does not fully support resizing yet" warning shown in the HA Layout tab. The method returns `columns: 12` (full-width default), `min_columns: 6`, and a computed `rows` value matching `getCardSize()`. The old `getCardSize()` is retained for backward compatibility with older HA versions.
+
 ## v1.6.1 (2026-06-09)
 
 ### Bug Fixes

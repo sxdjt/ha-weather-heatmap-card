@@ -305,12 +305,27 @@ export class SensorHeatmapCard extends HTMLElement {
     }
   }
 
-  // Home Assistant required method: return card height hint
+  // Home Assistant required method: return card height hint (legacy)
   getCardSize() {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
     const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
     return Math.ceil((rows * cellHeightPx + 100) / 50);
+  }
+
+  // Home Assistant grid layout options (HA 2024.x+); suppresses the resize warning
+  // and enables proper full-width / custom-size support in the Layout tab
+  getGridOptions() {
+    const rows = this._processedData ? this._processedData.rows.length : 12;
+    const sizing = this._getEffectiveSizing();
+    const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
+    const gridRows = Math.ceil((rows * cellHeightPx + 100) / 50);
+    return {
+      columns: 12,
+      rows: gridRows,
+      min_columns: 6,
+      min_rows: 4,
+    };
   }
 
   connectedCallback() {
