@@ -943,7 +943,23 @@ export class SensorHeatmapCard extends HTMLElement {
 
   _renderGrid() {
     const { rows, dates } = this._processedData;
-    const monthName = dates[0].toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    const firstDate = dates[0];
+    const lastDate = dates[dates.length - 1];
+    const sameMonth = firstDate.getMonth() === lastDate.getMonth() && firstDate.getFullYear() === lastDate.getFullYear();
+    let monthName;
+    if (sameMonth) {
+      monthName = firstDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    } else if (firstDate.getFullYear() === lastDate.getFullYear()) {
+      // Same year, different months: "April - June 2026"
+      const firstMonth = firstDate.toLocaleDateString(undefined, { month: 'long' });
+      const lastMonthYear = lastDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      monthName = `${firstMonth} - ${lastMonthYear}`;
+    } else {
+      // Different years: "December 2025 - June 2026"
+      const firstMonthYear = firstDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      const lastMonthYear = lastDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      monthName = `${firstMonthYear} - ${lastMonthYear}`;
+    }
     const todayKey = new Date().toDateString();
     const dateHeaders = dates.map(date => {
       const isToday = date.toDateString() === todayKey;

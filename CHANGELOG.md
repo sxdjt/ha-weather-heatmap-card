@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.3 (2026-06-12)
+
+### Bug Fixes
+
+- Fixed the month header banner showing only the first month when the selected date range spans multiple months. It now displays the full range (e.g., "April - June 2026"). When the range spans different years, both year values are shown (e.g., "December 2025 - June 2026").
+
 ## v1.6.2 (2026-06-09)
 
 ### Bug Fixes
