@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.7.6 (2026-07-06)
+
+### Maintenance
+
+- Adopted CalVer versioning (`YYYY.M.D`); this release follows 1.6.3.
+- Updated dev/build dependencies: rollup 4.60.1 -> 4.62.2, vitest 4.1.2 -> 4.1.10. No functional changes to the card; the shipped bundle is unchanged aside from the version banner.
+
 ## v1.6.3 (2026-06-12)
 
 ### Bug Fixes
