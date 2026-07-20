@@ -167,7 +167,8 @@ Forecast notes:
 
 - Forecast is a temperature-only feature and is shown only on the current view (browsing to past periods hides it).
 - Forecast data is fetched via the `weather.get_forecasts` service (`type: daily`). The `forecast_entity` must be a weather entity that supports daily forecasts.
-- Future day columns show only the daily high/low in the forecast row; their hourly cells are left blank since forecasts are daily.
+- The forecast row covers the current day (over its existing history column) plus the appended future days.
+- Appended future day columns show only the daily high/low in the forecast row; their hourly cells are left blank since forecasts are daily.
 - Clicking a forecast cell opens the more-info dialog for the weather entity.
 
 ### Generic Options

@@ -1106,9 +1106,13 @@ export class SensorHeatmapCard extends HTMLElement {
     const decimals = this._config.decimals;
     const degree = this._config.show_degree_symbol ? '°' : '';
 
+    // Today is the last historical column; the forecast covers it too, so render
+    // forecast cells from today's column onward. Earlier historical columns stay empty.
+    const firstForecastColumn = historyColumnCount - 1;
+
     return dates.map((date, colIndex) => {
-      // Historical columns have no forecast - keep an empty cell to preserve column width
-      if (colIndex < historyColumnCount) {
+      // Past historical columns have no forecast - keep an empty cell to preserve column width
+      if (colIndex < firstForecastColumn) {
         return '<div class="forecast-cell empty"></div>';
       }
 
