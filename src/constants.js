@@ -170,4 +170,4 @@ export function getWeatherConditionIcon(condition) {
 }
 
 // Card version
-export const VERSION = '2026.7.20';
+export const VERSION = '1.7.0';

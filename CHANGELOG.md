@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.7.0 (2026-07-21)
+
+Resumes SemVer versioning (following v1.6.3); the interim `2026.7.x` CalVer releases were prereleases.
+
+### New Features
+
+- Hourly forecast mode for the temperature card. Set `forecast_type: hourly` (with a `forecast_entity`) and the appended future day columns' hourly cells are filled with forecast temperatures instead of showing a daily high/low row. Forecast cells are rendered dimmer than live data; `forecast_dim` (default 0.5, range 0-1) controls how much dimmer, where 0 is no dimming and 1 is fully transparent. Use `forecast_days: 1` for the next day only. Forecast values are excluded from the Min/Max/Avg footer statistics, and clicking a forecast cell opens the more-info dialog for the weather entity. The default `forecast_type` remains `daily`, so existing configurations are unchanged. Resolves the hourly forecast request (#3).
+
 ## 2026.7.20 (2026-07-20)
 
 ### New Features

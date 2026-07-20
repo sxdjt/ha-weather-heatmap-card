@@ -320,6 +320,12 @@ export function createStyleElement() {
       box-shadow: none;
     }
 
+    /* Hourly forecast cell: rendered dimmer than live data via an inline
+       opacity derived from the forecast_dim config option. */
+    .cell.forecast {
+      cursor: pointer;
+    }
+
     /* Primary value text (temperature or wind speed) */
     .value {
       font-weight: 700;

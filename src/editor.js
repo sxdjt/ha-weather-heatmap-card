@@ -81,6 +81,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       // Forecast (temperature-only)
       forecast_entity: '',
       forecast_days: 3,
+      forecast_type: 'daily',
+      forecast_dim: 0.5,
       // Wind-specific defaults
       direction_entity: '',
       show_direction: true,
@@ -180,9 +182,12 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
 
-      // Forecast (temperature-only): a weather.* entity supplies daily high/low
+      // Forecast (temperature-only): a weather.* entity supplies the forecast
       { type: 'entity', key: 'forecast_entity', label: 'Forecast Weather Entity (optional)', showWhen: 'temperature' },
+      { type: 'select', key: 'forecast_type', label: 'Forecast Type',
+        options: { daily: 'Daily (high/low row)', hourly: 'Hourly (dimmed cells)' }, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
+      { type: 'number', key: 'forecast_dim', label: 'Forecast Dim (0 = none, 1 = invisible)', min: 0, max: 1, step: 0.1, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },
@@ -220,7 +225,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     }
   }
 
-  _createField({ type, key, label, min, max, options, required, showWhen }) {
+  _createField({ type, key, label, min, max, step, options, required, showWhen }) {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
     wrapper.style.flexDirection = 'column';
@@ -316,7 +321,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         input.hass = this._hass;
         input.label = label;
         if (type === 'number') {
-          const selectorConfig = { mode: 'box', step: 1 };
+          const selectorConfig = { mode: 'box', step: step !== undefined ? step : 1 };
           if (min !== undefined) selectorConfig.min = min;
           if (max !== undefined) selectorConfig.max = max;
           input.selector = { number: selectorConfig };
