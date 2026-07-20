@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.7.20 (2026-07-20)
+
+### New Features
+
+- Optional daily forecast for the temperature card. Set `forecast_entity` to a `weather.*` entity and the card appends future day columns with a forecast header row showing the condition icon and daily high/low. `forecast_days` (default 3, range 1-7) controls how many days are appended. Forecast data is fetched via the `weather.get_forecasts` service and is shown only on the current view; hourly cells under forecast columns are left blank since forecasts are daily. Clicking a forecast cell opens the more-info dialog for the weather entity. Resolves the forecast feature request (#3).
+
 ## 2026.7.6 (2026-07-06)
 
 ### Maintenance

@@ -8,6 +8,8 @@ import {
   DEFAULT_THRESHOLDS_KTS,
   getTemperatureThresholdsForUnit,
   getWindThresholdsForUnit,
+  getWeatherConditionIcon,
+  WEATHER_CONDITION_ICONS,
   VERSION,
 } from '../src/constants.js';
 
@@ -137,6 +139,32 @@ describe('getWindThresholdsForUnit', () => {
 
   it('returns mph thresholds for unrecognized unit', () => {
     expect(getWindThresholdsForUnit('furlongs')).toEqual(DEFAULT_THRESHOLDS_MPH);
+  });
+});
+
+// ------------------------------------------------------------
+// getWeatherConditionIcon
+// ------------------------------------------------------------
+
+describe('getWeatherConditionIcon', () => {
+  it('maps every known condition to a non-empty mdi icon name', () => {
+    Object.entries(WEATHER_CONDITION_ICONS).forEach(([condition, icon]) => {
+      expect(getWeatherConditionIcon(condition)).toBe(icon);
+      expect(icon).toMatch(/^mdi:/);
+    });
+  });
+
+  it('returns the sunny icon for "sunny"', () => {
+    expect(getWeatherConditionIcon('sunny')).toBe('mdi:weather-sunny');
+  });
+
+  it('falls back to a generic icon for an unknown condition', () => {
+    expect(getWeatherConditionIcon('meteor-shower')).toBe('mdi:weather-cloudy');
+  });
+
+  it('falls back to a generic icon for null/undefined', () => {
+    expect(getWeatherConditionIcon(null)).toBe('mdi:weather-cloudy');
+    expect(getWeatherConditionIcon(undefined)).toBe('mdi:weather-cloudy');
   });
 });
 

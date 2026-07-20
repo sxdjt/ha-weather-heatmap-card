@@ -136,5 +136,38 @@ export function getWindThresholdsForUnit(unit) {
   return DEFAULT_THRESHOLDS_MPH;
 }
 
+/**
+ * Map Home Assistant weather condition strings to Material Design Icon names.
+ * These are the standard condition values returned by weather entities and the
+ * weather.get_forecasts service. Used to render a condition icon in forecast cells.
+ */
+export const WEATHER_CONDITION_ICONS = {
+  'clear-night': 'mdi:weather-night',
+  'cloudy': 'mdi:weather-cloudy',
+  'exceptional': 'mdi:alert-circle-outline',
+  'fog': 'mdi:weather-fog',
+  'hail': 'mdi:weather-hail',
+  'lightning': 'mdi:weather-lightning',
+  'lightning-rainy': 'mdi:weather-lightning-rainy',
+  'partlycloudy': 'mdi:weather-partly-cloudy',
+  'pouring': 'mdi:weather-pouring',
+  'rainy': 'mdi:weather-rainy',
+  'snowy': 'mdi:weather-snowy',
+  'snowy-rainy': 'mdi:weather-snowy-rainy',
+  'sunny': 'mdi:weather-sunny',
+  'windy': 'mdi:weather-windy',
+  'windy-variant': 'mdi:weather-windy-variant',
+};
+
+/**
+ * Get the Material Design Icon name for a weather condition.
+ * Falls back to a generic icon when the condition is unknown or missing.
+ * @param {string} condition - Weather condition string (e.g. 'sunny', 'rainy')
+ * @returns {string} - MDI icon name (e.g. 'mdi:weather-sunny')
+ */
+export function getWeatherConditionIcon(condition) {
+  return WEATHER_CONDITION_ICONS[condition] || 'mdi:weather-cloudy';
+}
+
 // Card version
-export const VERSION = '2026.7.6';
+export const VERSION = '2026.7.20';

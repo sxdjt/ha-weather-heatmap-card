@@ -131,8 +131,18 @@ export function createStyleElement() {
       align-items: start;
     }
 
+    /* When forecast is active, add a middle grid row for the forecast strip */
+    .grid-wrapper.has-forecast {
+      grid-template-rows: auto auto 1fr;
+    }
+
     /* Empty top-left cell that sizes to match the date-headers row height */
     .date-header-spacer {
+      /* intentionally empty */
+    }
+
+    /* Spacer aligning the forecast row with the time-label column */
+    .forecast-spacer {
       /* intentionally empty */
     }
 
@@ -217,13 +227,14 @@ export function createStyleElement() {
        On touch devices, :hover is sticky after tap and can cause the cell to
        render on top of the more-info popup due to the transform stacking context. */
     @media (hover: hover) {
-      .cell:hover:not(.no-data) {
+      .cell:hover:not(.no-data):not(.forecast-blank) {
         transform: scale(1.1);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), 0 0 0 1.5px rgba(255, 255, 255, 0.35);
         z-index: 10;
       }
 
-      .cell.no-data:hover {
+      .cell.no-data:hover,
+      .cell.forecast-blank:hover {
         transform: none;
         box-shadow: none;
       }
@@ -249,6 +260,64 @@ export function createStyleElement() {
     .cell.filled {
       opacity: 0.6;
       border: 1px dashed currentColor;
+    }
+
+    /* Forecast row: one cell per column, aligned to the hourly data grid */
+    .forecast-row {
+      display: grid;
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      gap: var(--cell-gap, 2px);
+    }
+
+    /* Forecast cell: condition icon over daily high/low */
+    .forecast-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      min-height: var(--cell-height, 36px);
+      padding: var(--cell-padding, 2px);
+      border-radius: var(--cell-border-radius, 6px);
+      font-size: var(--cell-font-size, 11px);
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+
+    /* Empty forecast cell over historical columns - preserves column width only */
+    .forecast-cell.empty {
+      background: transparent;
+      cursor: default;
+    }
+
+    .forecast-cell:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .forecast-icon {
+      --mdc-icon-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .forecast-high {
+      font-weight: 700;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .forecast-low {
+      opacity: 0.8;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Blank hourly cell under a forecast (future) column */
+    .cell.forecast-blank {
+      background: transparent;
+      cursor: default;
+      box-shadow: none;
     }
 
     /* Primary value text (temperature or wind speed) */

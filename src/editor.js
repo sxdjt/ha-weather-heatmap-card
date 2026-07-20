@@ -78,6 +78,9 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       show_degree_symbol: true,
       fill_gaps: false,
       statistic_type: 'mean',
+      // Forecast (temperature-only)
+      forecast_entity: '',
+      forecast_days: 3,
       // Wind-specific defaults
       direction_entity: '',
       show_direction: true,
@@ -176,6 +179,10 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
+
+      // Forecast (temperature-only): a weather.* entity supplies daily high/low
+      { type: 'entity', key: 'forecast_entity', label: 'Forecast Weather Entity (optional)', showWhen: 'temperature' },
+      { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },

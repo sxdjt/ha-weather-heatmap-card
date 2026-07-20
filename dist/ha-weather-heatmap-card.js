@@ -1,4 +1,4 @@
-/* Last modified: 06-Jul-2026 12:45 */
+/* Last modified: 20-Jul-2026 09:36 */
 // Card CSS styles
 
 /**
@@ -132,8 +132,18 @@ function createStyleElement() {
       align-items: start;
     }
 
+    /* When forecast is active, add a middle grid row for the forecast strip */
+    .grid-wrapper.has-forecast {
+      grid-template-rows: auto auto 1fr;
+    }
+
     /* Empty top-left cell that sizes to match the date-headers row height */
     .date-header-spacer {
+      /* intentionally empty */
+    }
+
+    /* Spacer aligning the forecast row with the time-label column */
+    .forecast-spacer {
       /* intentionally empty */
     }
 
@@ -218,13 +228,14 @@ function createStyleElement() {
        On touch devices, :hover is sticky after tap and can cause the cell to
        render on top of the more-info popup due to the transform stacking context. */
     @media (hover: hover) {
-      .cell:hover:not(.no-data) {
+      .cell:hover:not(.no-data):not(.forecast-blank) {
         transform: scale(1.1);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), 0 0 0 1.5px rgba(255, 255, 255, 0.35);
         z-index: 10;
       }
 
-      .cell.no-data:hover {
+      .cell.no-data:hover,
+      .cell.forecast-blank:hover {
         transform: none;
         box-shadow: none;
       }
@@ -250,6 +261,64 @@ function createStyleElement() {
     .cell.filled {
       opacity: 0.6;
       border: 1px dashed currentColor;
+    }
+
+    /* Forecast row: one cell per column, aligned to the hourly data grid */
+    .forecast-row {
+      display: grid;
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      gap: var(--cell-gap, 2px);
+    }
+
+    /* Forecast cell: condition icon over daily high/low */
+    .forecast-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      min-height: var(--cell-height, 36px);
+      padding: var(--cell-padding, 2px);
+      border-radius: var(--cell-border-radius, 6px);
+      font-size: var(--cell-font-size, 11px);
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+
+    /* Empty forecast cell over historical columns - preserves column width only */
+    .forecast-cell.empty {
+      background: transparent;
+      cursor: default;
+    }
+
+    .forecast-cell:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .forecast-icon {
+      --mdc-icon-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .forecast-high {
+      font-weight: 700;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .forecast-low {
+      opacity: 0.8;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Blank hourly cell under a forecast (future) column */
+    .cell.forecast-blank {
+      background: transparent;
+      cursor: default;
+      box-shadow: none;
     }
 
     /* Primary value text (temperature or wind speed) */
@@ -663,8 +732,41 @@ function getWindThresholdsForUnit(unit) {
   return DEFAULT_THRESHOLDS_MPH;
 }
 
+/**
+ * Map Home Assistant weather condition strings to Material Design Icon names.
+ * These are the standard condition values returned by weather entities and the
+ * weather.get_forecasts service. Used to render a condition icon in forecast cells.
+ */
+const WEATHER_CONDITION_ICONS = {
+  'clear-night': 'mdi:weather-night',
+  'cloudy': 'mdi:weather-cloudy',
+  'exceptional': 'mdi:alert-circle-outline',
+  'fog': 'mdi:weather-fog',
+  'hail': 'mdi:weather-hail',
+  'lightning': 'mdi:weather-lightning',
+  'lightning-rainy': 'mdi:weather-lightning-rainy',
+  'partlycloudy': 'mdi:weather-partly-cloudy',
+  'pouring': 'mdi:weather-pouring',
+  'rainy': 'mdi:weather-rainy',
+  'snowy': 'mdi:weather-snowy',
+  'snowy-rainy': 'mdi:weather-snowy-rainy',
+  'sunny': 'mdi:weather-sunny',
+  'windy': 'mdi:weather-windy',
+  'windy-variant': 'mdi:weather-windy-variant',
+};
+
+/**
+ * Get the Material Design Icon name for a weather condition.
+ * Falls back to a generic icon when the condition is unknown or missing.
+ * @param {string} condition - Weather condition string (e.g. 'sunny', 'rainy')
+ * @returns {string} - MDI icon name (e.g. 'mdi:weather-sunny')
+ */
+function getWeatherConditionIcon(condition) {
+  return WEATHER_CONDITION_ICONS[condition] || 'mdi:weather-cloudy';
+}
+
 // Card version
-const VERSION = '2026.7.6';
+const VERSION = '2026.7.20';
 
 // Color parsing, interpolation, and utility functions
 
@@ -1188,6 +1290,10 @@ class SensorHeatmapCard extends HTMLElement {
     this._processedData = null;
     this._lastFetch = 0;
 
+    // Forecast data: map of dateKey -> { high, low, condition }
+    // Populated from the weather.get_forecasts service when a forecast_entity is configured.
+    this._forecastData = null;
+
     // Navigation state (0=current view, -7=one week back, etc.)
     this._viewOffset = 0;
 
@@ -1238,6 +1344,15 @@ class SensorHeatmapCard extends HTMLElement {
 
     if (config.days && (config.days < 1 || config.days > 365)) {
       throw new Error('days must be between 1 and 365');
+    }
+
+    // Forecast is a temperature-only feature. Validate forecast_days when configured.
+    if (config.forecast_days !== undefined &&
+        (!Number.isInteger(config.forecast_days) || config.forecast_days < 1 || config.forecast_days > 7)) {
+      throw new Error('forecast_days must be an integer between 1 and 7');
+    }
+    if (config.forecast_entity && card_type !== 'temperature') {
+      throw new Error('forecast_entity is only supported when card_type is temperature');
     }
 
     const validInterpolations = ['rgb', 'gamma', 'hsl', 'lab'];
@@ -1374,6 +1489,12 @@ class SensorHeatmapCard extends HTMLElement {
       fill_gaps: config.fill_gaps || false,
       fill_gaps_style: config.fill_gaps_style || 'dimmed',
 
+      // --- Forecast options (temperature card only) ---
+      // A weather.* entity supplies the daily high/low forecast; when set, future
+      // day columns are appended to the grid with a forecast header row.
+      forecast_entity: config.forecast_entity || null,
+      forecast_days: config.forecast_days || 3,
+
       // --- Wind-only options ---
       direction_entity: config.direction_entity || null,
       show_direction: config.show_direction !== false,
@@ -1457,7 +1578,9 @@ class SensorHeatmapCard extends HTMLElement {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
     const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
-    return Math.ceil((rows * cellHeightPx + 100) / 50);
+    // Forecast row adds roughly one extra cell height when active
+    const forecastPx = this._forecastActive() ? cellHeightPx : 0;
+    return Math.ceil((rows * cellHeightPx + forecastPx + 100) / 50);
   }
 
   // Home Assistant grid layout options (HA 2024.x+); suppresses the resize warning
@@ -1466,7 +1589,8 @@ class SensorHeatmapCard extends HTMLElement {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
     const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
-    const gridRows = Math.ceil((rows * cellHeightPx + 100) / 50);
+    const forecastPx = this._forecastActive() ? cellHeightPx : 0;
+    const gridRows = Math.ceil((rows * cellHeightPx + forecastPx + 100) / 50);
     return {
       columns: 12,
       rows: gridRows,
@@ -1567,6 +1691,14 @@ class SensorHeatmapCard extends HTMLElement {
         await this._fetchStatisticsData(startTime, endTime, partialBucketKey);
       } else {
         await this._fetchHistoryApiData(startTime, endTime, partialBucketKey);
+      }
+
+      // Fetch daily forecast for future columns (temperature card, current view only).
+      // A forecast failure must not break the historical heatmap, so it is best-effort.
+      if (this._forecastActive()) {
+        await this._fetchForecastData();
+      } else {
+        this._forecastData = null;
       }
 
       this._lastFetch = Date.now();
@@ -1696,6 +1828,63 @@ class SensorHeatmapCard extends HTMLElement {
     }
   }
 
+  /**
+   * Whether the forecast feature is active for the current view.
+   * Forecast is a temperature-only feature and only shown on the current view
+   * (offset 0) since it describes future days - browsing history hides it.
+   * @returns {boolean}
+   */
+  _forecastActive() {
+    return !!this._config.forecast_entity
+      && this._config.card_type === 'temperature'
+      && this._viewOffset === 0;
+  }
+
+  /**
+   * Fetch the daily forecast from the configured weather entity via the
+   * weather.get_forecasts service and store it as a dateKey -> {high, low, condition} map.
+   * Best-effort: any failure logs a warning and clears forecast data without
+   * disrupting the historical heatmap.
+   */
+  async _fetchForecastData() {
+    const entityId = this._config.forecast_entity;
+    try {
+      const fetchWithTimeout = (promise, timeoutMs = 30000) => Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Forecast request timeout after 30 seconds')), timeoutMs)
+        )
+      ]);
+
+      // weather.get_forecasts returns { <entity_id>: { forecast: [ {datetime, temperature, templow, condition}, ... ] } }
+      const result = await fetchWithTimeout(this._hass.callWS({
+        type: 'call_service',
+        domain: 'weather',
+        service: 'get_forecasts',
+        service_data: { type: 'daily' },
+        target: { entity_id: entityId },
+        return_response: true,
+      }));
+
+      const forecastList = result?.response?.[entityId]?.forecast || [];
+      const forecastMap = {};
+      forecastList.forEach(item => {
+        if (!item.datetime) return;
+        const dateKey = getDateKey(new Date(item.datetime));
+        forecastMap[dateKey] = {
+          // 'temperature' is the daily high, 'templow' is the daily low
+          high: item.temperature ?? null,
+          low: item.templow ?? null,
+          condition: item.condition || null,
+        };
+      });
+      this._forecastData = forecastMap;
+    } catch (error) {
+      console.warn('Weather Heatmap: Forecast fetch failed:', error.message);
+      this._forecastData = null;
+    }
+  }
+
   // Process raw history data into grid structure
   _processData() {
     if (!this._historyData) {
@@ -1754,12 +1943,18 @@ class SensorHeatmapCard extends HTMLElement {
     const rows = [];
     let allTemperatures = [];
 
+    // Forecast columns are the future days appended after the historical days.
+    // Their hourly cells carry no historical data and render blank; the daily
+    // high/low is shown separately in the forecast row.
+    const forecastActive = this._forecastActive();
+    const historyColumnCount = this._config.days;
+
     for (let h = 0; h < rowsPerDay; h++) {
       const hour = h * intervalHours;
       const row = {
         hour,
         label: formatHourLabel(hour, this._config.time_format),
-        cells: dates.map(date => {
+        cells: dates.map((date, colIndex) => {
           const dateKey = getDateKey(date);
           const key = `${dateKey}_${hour}`;
           const bucket = grid[key];
@@ -1767,7 +1962,8 @@ class SensorHeatmapCard extends HTMLElement {
             date,
             temperature: bucket?.temperature ?? null,
             hasData: bucket && bucket.temperature !== null,
-            isPartial: partialBucketKey && key === partialBucketKey
+            isPartial: partialBucketKey && key === partialBucketKey,
+            isForecast: forecastActive && colIndex >= historyColumnCount
           };
           if (cell.temperature !== null) allTemperatures.push(cell.temperature);
           return cell;
@@ -1963,10 +2159,13 @@ class SensorHeatmapCard extends HTMLElement {
     this._processedData = { rows, dates, stats };
   }
 
-  // Build array of date objects for grid columns
+  // Build array of date objects for grid columns.
+  // When forecast is active, additional future day columns are appended after the
+  // historical days so the grid spans a continuous past -> future timeline.
   _buildDates(startTime) {
     const dates = [];
-    for (let d = 0; d < this._config.days; d++) {
+    const totalDays = this._config.days + (this._forecastActive() ? this._config.forecast_days : 0);
+    for (let d = 0; d < totalDays; d++) {
       const date = new Date(startTime);
       date.setDate(date.getDate() + d);
       dates.push(date);
@@ -2006,7 +2205,9 @@ class SensorHeatmapCard extends HTMLElement {
     this._content.classList.toggle('compact-header', !!this._config.compact_header);
 
     if (this._processedData) {
-      this._content.style.setProperty('--days-count', this._config.days);
+      // Column count includes appended forecast days when forecast is active.
+      const columnCount = this._processedData.dates.length;
+      this._content.style.setProperty('--days-count', columnCount);
       const sizing = this._getEffectiveSizing();
       this._content.style.setProperty('--cell-height', sizing.cellHeight);
       this._content.style.setProperty('--cell-width', sizing.cellWidth);
@@ -2024,7 +2225,7 @@ class SensorHeatmapCard extends HTMLElement {
       if (dataGrid) {
         dataGrid.style.gap = sizing.cellGap;
         dataGrid.style.gridAutoRows = sizing.cellHeight;
-        dataGrid.style.gridTemplateColumns = `repeat(${this._config.days}, ${sizing.cellWidth})`;
+        dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${sizing.cellWidth})`;
       }
     }
   }
@@ -2119,17 +2320,86 @@ class SensorHeatmapCard extends HTMLElement {
       ? `<div class="month-header">${monthName}</div>`
       : '';
 
+    // Forecast row sits between the date headers and the hourly grid, aligned to
+    // the future day columns. Only rendered when forecast is active.
+    const forecastActive = this._forecastActive();
+    const forecastSection = forecastActive
+      ? `<div class="forecast-spacer"></div>
+         <div class="forecast-row">${this._renderForecastRow(dates)}</div>`
+      : '';
+
     return `
       <div class="heatmap-grid">
         ${monthHeader}
-        <div class="grid-wrapper">
+        <div class="grid-wrapper${forecastActive ? ' has-forecast' : ''}">
           <div class="date-header-spacer"></div>
           <div class="date-headers">${dateHeaders}</div>
+          ${forecastSection}
           <div class="time-labels">${timeLabels}</div>
           <div class="data-grid">${dataCells}</div>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Render the forecast row: one cell per grid column, aligned to the columns
+   * of the hourly grid. Historical columns render empty placeholders; future
+   * (forecast) columns show the daily condition icon and high/low temperature.
+   * @param {Array<Date>} dates - Full column date list (historical + forecast)
+   * @returns {string} HTML string for the forecast row cells
+   */
+  _renderForecastRow(dates) {
+    const historyColumnCount = this._config.days;
+    const decimals = this._config.decimals;
+    const degree = this._config.show_degree_symbol ? '°' : '';
+
+    return dates.map((date, colIndex) => {
+      // Historical columns have no forecast - keep an empty cell to preserve column width
+      if (colIndex < historyColumnCount) {
+        return '<div class="forecast-cell empty"></div>';
+      }
+
+      const dateKey = getDateKey(date);
+      const forecast = this._forecastData ? this._forecastData[dateKey] : null;
+      if (!forecast || (forecast.high === null && forecast.low === null)) {
+        return '<div class="forecast-cell empty"></div>';
+      }
+
+      // Tint the cell by the day's high using the same threshold scale as the heatmap
+      let styleAttr = '';
+      if (forecast.high !== null) {
+        const bgColor = getColorForValue(
+          forecast.high,
+          this._config.color_thresholds,
+          this._config.interpolate_colors,
+          this._config.color_interpolation
+        );
+        const textColor = getContrastTextColor(bgColor);
+        styleAttr = ` style="background-color: ${bgColor}; color: ${textColor}"`;
+      }
+
+      const iconName = forecast.condition ? getWeatherConditionIcon(forecast.condition) : null;
+      const iconHtml = iconName
+        ? `<ha-icon class="forecast-icon" icon="${iconName}"></ha-icon>`
+        : '';
+      const highStr = forecast.high !== null ? `${forecast.high.toFixed(decimals)}${degree}` : '-';
+      const lowStr = forecast.low !== null ? `${forecast.low.toFixed(decimals)}${degree}` : '-';
+      const conditionLabel = forecast.condition ? ` ${forecast.condition}` : '';
+
+      return `
+        <div class="forecast-cell"
+             data-forecast="true"
+             data-date="${date.toISOString()}"
+             tabindex="0"
+             role="button"
+             aria-label="Forecast${conditionLabel}, high ${highStr}, low ${lowStr}"${styleAttr}>
+          ${iconHtml}
+          <span class="forecast-high">${highStr}</span>
+          <span class="forecast-low">${lowStr}</span>
+        </div>
+      `;
+    }).join('');
   }
 
   _renderCell(cell) {
@@ -2140,6 +2410,10 @@ class SensorHeatmapCard extends HTMLElement {
   }
 
   _renderTemperatureCell(cell) {
+    // Forecast columns carry no hourly history - render a blank, non-interactive cell
+    if (cell.isForecast) {
+      return `<div class="cell forecast-blank"></div>`;
+    }
     if (!cell.hasData) {
       return `<div class="cell no-data"><span class="value">-</span></div>`;
     }
@@ -2382,6 +2656,17 @@ class SensorHeatmapCard extends HTMLElement {
       return;
     }
 
+    // Forecast cells open more-info for the weather entity (not the sensor entity)
+    const forecastCell = e.target.closest('.forecast-cell');
+    if (forecastCell && forecastCell.dataset.forecast === 'true') {
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true,
+        composed: true,
+        detail: { entityId: this._config.forecast_entity }
+      }));
+      return;
+    }
+
     const cell = e.target.closest('.cell');
     if (cell && !cell.classList.contains('no-data')) {
       this._handleCellClick(cell);
@@ -2571,6 +2856,9 @@ class SensorHeatmapCardEditor extends HTMLElement {
       show_degree_symbol: true,
       fill_gaps: false,
       statistic_type: 'mean',
+      // Forecast (temperature-only)
+      forecast_entity: '',
+      forecast_days: 3,
       // Wind-specific defaults
       direction_entity: '',
       show_direction: true,
@@ -2669,6 +2957,10 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
       { type: 'switch', key: 'show_degree_symbol', label: 'Show Degree Symbol', showWhen: 'temperature' },
+
+      // Forecast (temperature-only): a weather.* entity supplies daily high/low
+      { type: 'entity', key: 'forecast_entity', label: 'Forecast Weather Entity (optional)', showWhen: 'temperature' },
+      { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },

@@ -29,6 +29,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Hour filtering (e.g., daytime only)
 - Configurable decimal precision and degree symbol
 - Gap filling (forward-fill last known value)
+- Optional daily forecast: append future day columns with a condition icon and high/low from a `weather.*` entity
 
 **Wind speed mode** (`card_type: windspeed`):
 - Default colors based on the Beaufort scale (Force 0-12)
@@ -72,6 +73,15 @@ direction_entity: sensor.wind_direction
 type: custom:ha-weather-heatmap-card
 card_type: humidity
 entity: sensor.outdoor_humidity
+```
+
+```yaml
+# Temperature history with a 3-day forecast appended
+type: custom:ha-weather-heatmap-card
+card_type: temperature
+entity: sensor.outdoor_temperature
+forecast_entity: weather.home
+forecast_days: 3
 ```
 
 ```yaml
@@ -148,8 +158,17 @@ entity: sensor.wind_speed
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `forecast_entity` | string | | A `weather.*` entity supplying the daily forecast. When set, future day columns with a forecast header row (condition icon + high/low) are appended to the grid |
+| `forecast_days` | number | `3` | Number of forecast days to append (1-7) |
 | `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
 | `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
+
+Forecast notes:
+
+- Forecast is a temperature-only feature and is shown only on the current view (browsing to past periods hides it).
+- Forecast data is fetched via the `weather.get_forecasts` service (`type: daily`). The `forecast_entity` must be a weather entity that supports daily forecasts.
+- Future day columns show only the daily high/low in the forecast row; their hourly cells are left blank since forecasts are daily.
+- Clicking a forecast cell opens the more-info dialog for the weather entity.
 
 ### Generic Options
 
