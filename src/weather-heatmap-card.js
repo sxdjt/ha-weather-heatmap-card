@@ -789,6 +789,22 @@ export class SensorHeatmapCard extends HTMLElement {
     const forecastActive = this._forecastActive();
     const hourlyForecast = this._hourlyForecast() ? this._forecastHourly : null;
     const historyColumnCount = this._config.days;
+    // Today is the last historical column; live data only covers it up to "now".
+    // In hourly forecast mode, its remaining future hours are forward-filled from
+    // the forecast so today joins seamlessly with the appended forecast columns.
+    const todayColumnIndex = historyColumnCount - 1;
+    const nowMs = Date.now();
+
+    // The current (partial) hourly bucket often has no aggregated reading yet - the
+    // statistics API only finalizes an hour once it completes, so the in-progress
+    // bucket comes back empty. Fall back to the entity's live state so the current
+    // bucket shows the latest value instead of a blank cell.
+    let liveTemperature = null;
+    if (partialBucketKey) {
+      const liveState = this._hass?.states?.[this._config.entity]?.state;
+      const parsedLive = parseFloat(liveState);
+      if (!isNaN(parsedLive)) liveTemperature = parsedLive;
+    }
 
     for (let h = 0; h < rowsPerDay; h++) {
       const hour = h * intervalHours;
@@ -822,7 +838,32 @@ export class SensorHeatmapCard extends HTMLElement {
             isPartial: partialBucketKey && key === partialBucketKey,
             isForecast: false
           };
-          if (cell.temperature !== null) allTemperatures.push(cell.temperature);
+
+          // Partial (current) bucket with no aggregated reading yet: use the live
+          // entity state so the in-progress hour shows the current value.
+          if (cell.isPartial && !cell.hasData && liveTemperature !== null) {
+            cell.temperature = liveTemperature;
+            cell.hasData = true;
+          }
+
+          // Forward-fill today's remaining hours with hourly forecast values so the
+          // current day is continuous. Only future, still-empty buckets are filled;
+          // real/live readings and past gaps are left untouched.
+          if (hourlyForecast && !cell.hasData && colIndex === todayColumnIndex) {
+            const bucketTime = new Date(date);
+            bucketTime.setHours(hour, 0, 0, 0);
+            if (bucketTime.getTime() > nowMs) {
+              const forecast = hourlyForecast[key];
+              if (forecast && forecast.temperature !== null) {
+                cell.temperature = forecast.temperature;
+                cell.hasData = true;
+                cell.isForecast = true;
+              }
+            }
+          }
+
+          // Live/historical temperatures drive the color scale; forecast fills do not.
+          if (cell.temperature !== null && !cell.isForecast) allTemperatures.push(cell.temperature);
           return cell;
         })
       };

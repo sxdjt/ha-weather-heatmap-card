@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.7.1 (2026-07-21)
+
+### Bug Fixes
+
+- Hourly forecast now forward-fills today's remaining hours. Previously the current day's cells after "now" were left blank in `forecast_type: hourly` mode, leaving a gap between today's live data and the appended forecast columns. Today's future hours are now filled from the hourly forecast and rendered with the same dimming as the forecast columns (#3).
+- The current in-progress hour bucket now shows the entity's live value instead of a blank cell. The statistics API only finalizes an hour once it completes, so the current bucket previously came back empty; the card now falls back to the live entity state for that bucket.
+
 ## v1.7.0 (2026-07-21)
 
 Resumes SemVer versioning (following v1.6.3); the interim `2026.7.x` CalVer releases were prereleases.
