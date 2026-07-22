@@ -1,4 +1,4 @@
-/* Last modified: 21-Jul-2026 08:58 */
+/* Last modified: 21-Jul-2026 22:18 */
 // Card CSS styles
 
 /**
@@ -772,7 +772,7 @@ function getWeatherConditionIcon(condition) {
 }
 
 // Card version
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 
 // Color parsing, interpolation, and utility functions
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.2 (2026-07-21)
+
+### Fixed
+
+- Republished the v1.7.1 hourly-forecast fixes with a correctly-built release artifact. The v1.7.1 release asset was an intermediate build that predated the fix commit, so it omitted the live-value fill for the current hour bucket and the forward-fill of today's remaining hours. HACS installs of v1.7.1 therefore did not receive those fixes. There are no code changes since v1.7.1; this release ships the correct bundle.
+
 ## v1.7.1 (2026-07-21)
 
 ### Bug Fixes
