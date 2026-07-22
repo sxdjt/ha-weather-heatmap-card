@@ -1,4 +1,4 @@
-/* Last modified: 21-Jul-2026 22:18 */
+/* Last modified: 21-Jul-2026 22:24 */
 // Card CSS styles
 
 /**
@@ -772,7 +772,7 @@ function getWeatherConditionIcon(condition) {
 }
 
 // Card version
-const VERSION = '1.7.2';
+const VERSION = '1.7.3';
 
 // Color parsing, interpolation, and utility functions
 
@@ -2250,6 +2250,22 @@ class SensorHeatmapCard extends HTMLElement {
     const rows = [];
     const allSpeeds = [];
 
+    // The current (partial) hourly bucket often has no aggregated reading yet - the
+    // statistics API only finalizes an hour once it completes, so the in-progress
+    // bucket comes back empty. Fall back to the entity's live state so the current
+    // bucket shows the latest value instead of a blank cell. Direction, when a
+    // direction_entity is configured, is filled from its live state too.
+    let liveSpeed = null;
+    let liveDirection = null;
+    if (partialBucketKey) {
+      const parsedSpeed = parseFloat(this._hass?.states?.[this._config.entity]?.state);
+      if (!isNaN(parsedSpeed)) liveSpeed = parsedSpeed;
+      if (this._config.direction_entity) {
+        const parsedDirection = parseFloat(this._hass?.states?.[this._config.direction_entity]?.state);
+        if (!isNaN(parsedDirection)) liveDirection = parsedDirection;
+      }
+    }
+
     for (let h = 0; h < rowsPerDay; h++) {
       const hour = h * intervalHours;
       const row = {
@@ -2266,6 +2282,15 @@ class SensorHeatmapCard extends HTMLElement {
             hasData: bucket && bucket.speed !== null,
             isPartial: partialBucketKey && key === partialBucketKey
           };
+
+          // Partial (current) bucket with no aggregated reading yet: use the live
+          // entity state so the in-progress hour shows the current value.
+          if (cell.isPartial && !cell.hasData && liveSpeed !== null) {
+            cell.speed = liveSpeed;
+            if (cell.direction === null) cell.direction = liveDirection;
+            cell.hasData = true;
+          }
+
           if (cell.speed !== null) allSpeeds.push(cell.speed);
           return cell;
         })

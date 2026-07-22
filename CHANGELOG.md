@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.3 (2026-07-21)
+
+### Bug Fixes
+
+- The windspeed card now shows the current in-progress hour bucket instead of a blank cell. The live fill added in v1.7.1 was only applied to the temperature card; the windspeed card's separate processing path left the current bucket empty until the statistics API finalized the hour. The current bucket now falls back to the live speed entity state, and to the live `direction_entity` state when configured.
+
 ## v1.7.2 (2026-07-21)
 
 ### Fixed
