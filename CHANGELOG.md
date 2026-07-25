@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.7.25 (2026-07-25)
+
+### Changed
+
+- Version-only release to correct a versioning mistake. This card was switched from CalVer (`2026.x`) to SemVer (`1.x`) and back, which broke HACS update detection (HACS compares versions numerically, so `2026.x` outranks `1.x` and installs pinned to an earlier CalVer build stopped seeing new releases). Returning to CalVer with a later date restores a single monotonic version line so updates flow normally again. No functional changes to the card.
+
 ## v1.7.3 (2026-07-21)
 
 ### Bug Fixes

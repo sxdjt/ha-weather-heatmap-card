@@ -1,4 +1,4 @@
-/* Last modified: 21-Jul-2026 22:24 */
+/* Last modified: 25-Jul-2026 11:18 */
 // Card CSS styles
 
 /**
@@ -772,7 +772,7 @@ function getWeatherConditionIcon(condition) {
 }
 
 // Card version
-const VERSION = '1.7.3';
+const VERSION = '2026.7.25';
 
 // Color parsing, interpolation, and utility functions
 
@@ -3554,7 +3554,7 @@ window.customCards.push(
 );
 
 console.info(
-  '%c WEATHER-HEATMAP-CARD %c v' + VERSION + ' ',
+  '%c WEATHER-HEATMAP-CARD %c ' + VERSION + ' ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );

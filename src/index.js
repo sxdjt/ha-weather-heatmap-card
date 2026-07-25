@@ -79,7 +79,7 @@ window.customCards.push(
 );
 
 console.info(
-  '%c WEATHER-HEATMAP-CARD %c v' + VERSION + ' ',
+  '%c WEATHER-HEATMAP-CARD %c ' + VERSION + ' ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
