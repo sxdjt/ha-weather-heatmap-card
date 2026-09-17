@@ -83,6 +83,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       forecast_days: 3,
       forecast_type: 'daily',
       forecast_dim: 0.5,
+      temperature_adjustment: 0,
       // Wind-specific defaults
       direction_entity: '',
       show_direction: true,
@@ -188,6 +189,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         options: { daily: 'Daily (high/low row)', hourly: 'Hourly (dimmed cells)' }, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_dim', label: 'Forecast Dim (0 = none, 1 = invisible)', min: 0, max: 1, step: 0.1, showWhen: 'temperature' },
+      { type: 'number', key: 'temperature_adjustment', label: 'Temperature Adjustment', step: 0.1, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },

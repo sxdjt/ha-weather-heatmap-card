@@ -115,6 +115,10 @@ export class SensorHeatmapCard extends HTMLElement {
     if (config.forecast_type !== undefined && !['daily', 'hourly'].includes(config.forecast_type)) {
       throw new Error("forecast_type must be 'daily' or 'hourly'");
     }
+    if (config.temperature_adjustment !== undefined &&
+        (typeof config.temperature_adjustment !== 'number' || !Number.isFinite(config.temperature_adjustment))) {
+      throw new Error('temperature_adjustment must be a finite number');
+    }
     // forecast_dim is the fraction by which forecast cells are dimmed relative to
     // live data (0 = no dimming, 1 = fully transparent). Only applies to hourly forecast.
     if (config.forecast_dim !== undefined &&
@@ -266,6 +270,8 @@ export class SensorHeatmapCard extends HTMLElement {
       // rendered dimmer than live data (see forecast_dim).
       forecast_type: config.forecast_type || 'daily',
       forecast_dim: config.forecast_dim !== undefined ? config.forecast_dim : 0.5,
+      // Offset applied only to forecast temperatures before display/color mapping.
+      temperature_adjustment: config.temperature_adjustment !== undefined ? config.temperature_adjustment : 0,
 
       // --- Wind-only options ---
       direction_entity: config.direction_entity || null,
@@ -662,6 +668,7 @@ export class SensorHeatmapCard extends HTMLElement {
       }));
 
       const forecastList = result?.response?.[entityId]?.forecast || [];
+      const adjustment = this._config.temperature_adjustment;
 
       if (isHourly) {
         this._forecastHourly = this._bucketHourlyForecast(forecastList);
@@ -673,8 +680,10 @@ export class SensorHeatmapCard extends HTMLElement {
           const dateKey = getDateKey(new Date(item.datetime));
           forecastMap[dateKey] = {
             // 'temperature' is the daily high, 'templow' is the daily low
-            high: item.temperature ?? null,
-            low: item.templow ?? null,
+            high: item.temperature !== null && item.temperature !== undefined
+              ? item.temperature + adjustment : null,
+            low: item.templow !== null && item.templow !== undefined
+              ? item.templow + adjustment : null,
             condition: item.condition || null,
           };
         });
@@ -707,7 +716,7 @@ export class SensorHeatmapCard extends HTMLElement {
       const key = `${dateKey}_${hourBucket}`;
 
       if (!buckets[key]) buckets[key] = { sum: 0, count: 0, condition: null };
-      buckets[key].sum += item.temperature;
+      buckets[key].sum += item.temperature + this._config.temperature_adjustment;
       buckets[key].count += 1;
       // Keep the condition from the first forecast hour that falls in the bucket
       if (buckets[key].condition === null && item.condition) buckets[key].condition = item.condition;
