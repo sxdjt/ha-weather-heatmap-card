@@ -68,6 +68,28 @@ describe('getContrastTextColor', () => {
     expect(getContrastTextColor('#1a237e')).toBe('#ffffff'); // dark blue
   });
 
+  it('picks black on mid-tone fills where white is under 4.5:1', () => {
+    expect(getContrastTextColor('#f44336')).toBe('#000000'); // red: white 3.7:1, black 5.7:1
+    expect(getContrastTextColor('rgba(244, 81, 30, 1)')).toBe('#000000'); // Force 10: white 3.5:1
+    expect(getContrastTextColor('rgba(30, 136, 229, 1)')).toBe('#000000'); // Force 4: white 3.7:1
+  });
+
+  it('gives at least 4.5:1 on every default threshold fill', async () => {
+    const constants = await import('../src/constants.js');
+    const lin = (c) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+    const fills = Object.values(constants).filter(Array.isArray).flat()
+      .map((t) => t && t.color).filter((c) => typeof c === 'string');
+    expect(fills.length).toBeGreaterThan(0);
+    for (const fill of fills) {
+      const hex = rgbaToHex(fill);
+      const rgb = [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16));
+      const text = getContrastTextColor(fill) === '#000000' ? [0, 0, 0] : [255, 255, 255];
+      expect(ratio(rgb, text), fill).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('handles rgba() format', () => {
     expect(getContrastTextColor('rgba(255, 255, 255, 1)')).toBe('#000000');
     expect(getContrastTextColor('rgba(0, 0, 0, 1)')).toBe('#ffffff');

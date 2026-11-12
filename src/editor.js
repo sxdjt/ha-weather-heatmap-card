@@ -2,6 +2,46 @@
 
 import { rgbaToHex } from './color-utils.js';
 
+// Unique per editor instance, so aria-describedby ids do not collide when two editors share a root
+let editorInstanceCount = 0;
+
+// The editor renders into light DOM, so rules are scoped under its tag name
+const EDITOR_STYLES = `
+  ha-weather-heatmap-card-editor .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  ha-weather-heatmap-card-editor .threshold-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  ha-weather-heatmap-card-editor .threshold-value { width: 80px; }
+  ha-weather-heatmap-card-editor .threshold-color { flex: 1 1 120px; }
+  ha-weather-heatmap-card-editor .row-input {
+    box-sizing: border-box; min-width: 0;
+    padding: 4px 8px; font-size: 14px; border-radius: 4px;
+    border: 1px solid var(--secondary-text-color, #727272);
+    background: var(--card-background-color, #fff); color: var(--primary-text-color);
+  }
+  ha-weather-heatmap-card-editor .row-input[aria-invalid='true'] {
+    border: 2px solid var(--error-color, #db4437);
+  }
+  ha-weather-heatmap-card-editor .color-swatch {
+    width: 36px; height: 30px; padding: 0; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--secondary-text-color, #727272); background: none;
+  }
+  /* Text stays primary color for 4.5:1; red only on non-text parts, which need 3:1 */
+  ha-weather-heatmap-card-editor .error-text {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 12px; color: var(--primary-text-color);
+    margin-top: 6px; padding: 4px 8px;
+    border-left: 3px solid var(--error-color, #db4437);
+  }
+  ha-weather-heatmap-card-editor .error-text:empty { display: none; }
+  ha-weather-heatmap-card-editor .error-text ha-icon {
+    flex: 0 0 auto; color: var(--error-color, #db4437); --mdc-icon-size: 16px;
+  }
+`;
+
 /**
  * Visual editor for the Sensor Heatmap Card.
  * Shows all common fields, and conditionally shows temperature-only or
@@ -15,6 +55,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     this.content = null;
     this.fields = {};
     this.container_threshold = null;
+    this._addThresholdButton = null;
+    this._idPrefix = `whc-editor-${++editorInstanceCount}`;
   }
 
   set hass(hass) {
@@ -104,9 +146,17 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   _buildEditor() {
     this.content = document.createElement('div');
     this.content.style.display = 'grid';
+    // minmax(0, 1fr) lets items shrink to the editor width. With the default auto column,
+    // HA's dropdowns with long option text (Data Source) widened every row past the
+    // editor under increased text spacing.
+    this.content.style.gridTemplateColumns = 'minmax(0, 1fr)';
     this.content.style.gridGap = '8px';
     this.content.style.padding = '8px';
     this.appendChild(this.content);
+
+    const style = document.createElement('style');
+    style.textContent = EDITOR_STYLES;
+    this.content.appendChild(style);
 
     this.fields = {};
 
@@ -264,11 +314,14 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       wrapper.style.alignItems = 'center';
       wrapper.style.gap = '8px';
 
+      // A <label> beside ha-switch is not associated with it (shadow DOM), so the
+      // switch carries its own name and the visible text is a plain span
       input = document.createElement('ha-switch');
-      const lbl = document.createElement('label');
-      lbl.textContent = label;
+      input.setAttribute('aria-label', label);
+      const text = document.createElement('span');
+      text.textContent = label;
       wrapper.appendChild(input);
-      wrapper.appendChild(lbl);
+      wrapper.appendChild(text);
 
       input.addEventListener('change', (e) => {
         e.stopPropagation();
@@ -276,9 +329,10 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       });
 
     } else if (type === 'thresholds') {
-      const lbl = document.createElement('label');
-      lbl.textContent = label;
-      wrapper.appendChild(lbl);
+      const heading = document.createElement('div');
+      heading.style.fontWeight = 'bold';
+      heading.textContent = label;
+      wrapper.appendChild(heading);
 
       const list = document.createElement('div');
       list.style.display = 'grid';
@@ -287,29 +341,28 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
       this.container_threshold = list;
 
-      const addBtn = document.createElement('button');
+      const addBtn = document.createElement('ha-button');
       addBtn.textContent = 'Add Threshold';
       addBtn.style.marginTop = '8px';
+      addBtn.style.alignSelf = 'flex-start';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const newThresholds = [...this._config.color_thresholds];
         newThresholds.push({ value: 0, color: '#ffffff' });
         this._onFieldChange('color_thresholds', newThresholds);
+        this._refreshThresholdEditor();
       });
       wrapper.appendChild(addBtn);
+      this._addThresholdButton = addBtn;
 
     } else {
-      // ha-selector renders its own label; other types get an explicit <label>
-      if (type !== 'select' && type !== 'number' && type !== 'text') {
-        const lbl = document.createElement('label');
-        lbl.textContent = label;
-        wrapper.appendChild(lbl);
-      }
-
+      // ha-selector and ha-entity-picker render their own labels
       if (type === 'entity') {
         input = document.createElement('ha-entity-picker');
         input.setAttribute('allow-custom-entity', '');
         input.hass = this._hass;
+        input.label = label;
+        input.required = !!required;
 
         input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
@@ -319,6 +372,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       } else if (type === 'number' || type === 'text') {
         input = document.createElement('ha-selector');
         input.hass = this._hass;
+        // ha-selector marks fields required (label asterisk) unless told otherwise
+        input.required = false;
         input.label = label;
         if (type === 'number') {
           const selectorConfig = { mode: 'box', step: step !== undefined ? step : 1 };
@@ -338,6 +393,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       } else if (type === 'select') {
         input = document.createElement('ha-selector');
         input.hass = this._hass;
+        input.required = false;
         input.selector = {
           select: {
             options: Object.entries(options).map(([value, label]) => ({ value, label })),
@@ -398,7 +454,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       const input = field.input;
 
       if (field.type === 'thresholds') {
-        this._refreshThresholdEditor();
+        this._syncThresholdEditor();
         continue;
       }
 
@@ -419,65 +475,163 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     }
   }
 
+  // Hex value for the color picker, or null when the color cannot be shown there
+  // (invalid, or a var(--token) that only resolves inside the card)
+  _resolveColorToHex(color) {
+    if (!color || color.startsWith('var(') || !CSS.supports('color', color)) return null;
+    if (!this._colorContext) this._colorContext = document.createElement('canvas').getContext('2d');
+    if (!this._colorContext) return null;
+    // Canvas normalizes any CSS color to #rrggbb or rgba(...)
+    this._colorContext.fillStyle = '#000000';
+    this._colorContext.fillStyle = color;
+    return rgbaToHex(this._colorContext.fillStyle);
+  }
+
+  _updateThreshold(index, key, value) {
+    const newThresholds = [...this._config.color_thresholds];
+    newThresholds[index] = { ...newThresholds[index], [key]: value };
+    this._onFieldChange('color_thresholds', newThresholds);
+  }
+
   _createThresholdEditor() {
     const createRow = (threshold, index) => {
+      const n = index + 1;
+      const errorId = `${this._idPrefix}-threshold-${index}-error`;
+
+      const item = document.createElement('div');
       const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.gap = '8px';
+      row.className = 'threshold-row';
 
       const valueInput = document.createElement('input');
       valueInput.type = 'number';
+      valueInput.className = 'row-input threshold-value';
+      valueInput.setAttribute('aria-label', `Threshold ${n} value`);
       valueInput.value = threshold.value;
-      valueInput.style.width = '80px';
-      valueInput.style.background = 'var(--card-background-color, #fff)';
-      valueInput.style.color = 'var(--primary-text-color)';
-      valueInput.style.border = '1px solid var(--divider-color, #e0e0e0)';
-      valueInput.style.borderRadius = '4px';
-      valueInput.style.padding = '6px 8px';
       valueInput.addEventListener('change', (e) => {
         e.stopPropagation();
-        const newThresholds = [...this._config.color_thresholds];
-        const updated = { ...this._config.color_thresholds[index] };
-        updated.value = Number(e.target.value);
-        newThresholds[index] = updated;
-        this._onFieldChange('color_thresholds', newThresholds);
-        this._refreshThresholdEditor();
+        this._updateThreshold(index, 'value', Number(e.target.value));
       });
 
       const colorInput = document.createElement('input');
-      colorInput.type = 'color';
-      // Convert rgba() to hex for browser color picker compatibility
-      colorInput.value = rgbaToHex(threshold.color);
-      colorInput.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const newThresholds = [...this._config.color_thresholds];
-        const updated = { ...this._config.color_thresholds[index] };
-        updated.color = e.target.value;
-        newThresholds[index] = updated;
-        this._onFieldChange('color_thresholds', newThresholds);
-        this._refreshThresholdEditor();
-      });
+      colorInput.type = 'text';
+      colorInput.className = 'row-input threshold-color';
+      colorInput.placeholder = 'e.g., #FF0000';
+      colorInput.setAttribute('aria-label', `Threshold ${n} color`);
+      colorInput.value = threshold.color || '';
 
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = 'X';
-      removeBtn.style.cursor = 'pointer';
+      const swatch = document.createElement('input');
+      swatch.type = 'color';
+      swatch.className = 'color-swatch';
+      swatch.title = 'Pick a color';
+      swatch.setAttribute('aria-label', `Threshold ${n} color picker`);
+
+      const removeBtn = document.createElement('ha-button');
+      removeBtn.setAttribute('appearance', 'plain');
+      removeBtn.setAttribute('variant', 'danger');
+      const hidden = document.createElement('span');
+      hidden.className = 'visually-hidden';
+      hidden.textContent = ` threshold ${n}`;
+      removeBtn.append('Remove', hidden);
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const newThresholds = [...this._config.color_thresholds];
         newThresholds.splice(index, 1);
         this._onFieldChange('color_thresholds', newThresholds);
         this._refreshThresholdEditor();
+        // The removed row took the focused button with it; keep focus in the list
+        this._addThresholdButton?.focus();
       });
 
-      row.appendChild(valueInput);
-      row.appendChild(colorInput);
-      row.appendChild(removeBtn);
-      this.container_threshold.appendChild(row);
+      // Live region exists from the start so screen readers announce the error
+      // when it appears; it is empty while the value is valid or blank
+      const error = document.createElement('div');
+      error.className = 'error-text';
+      error.id = errorId;
+      error.setAttribute('aria-live', 'polite');
+
+      // Rebuild the message only when validity flips, so the live region announces
+      // once per transition rather than on every keystroke
+      let shown = false;
+      const updateError = (v) => {
+        const invalid = Boolean(v) && !CSS.supports('color', v);
+        if (invalid === shown) return;
+        shown = invalid;
+        colorInput.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+        if (invalid) {
+          colorInput.setAttribute('aria-describedby', errorId);
+        } else {
+          colorInput.removeAttribute('aria-describedby');
+        }
+        error.replaceChildren();
+        if (!invalid) return;
+        const icon = document.createElement('ha-icon');
+        icon.icon = 'mdi:alert-circle';
+        icon.setAttribute('aria-hidden', 'true');
+        const prefix = document.createElement('strong');
+        prefix.textContent = 'Error: ';
+        const message = document.createElement('span');
+        message.append(prefix, `Threshold ${n} color is not a valid color. Use a hex code (#FF0000), a color name (red), or var(--token).`);
+        error.append(icon, message);
+      };
+
+      const syncSwatch = (v) => {
+        const hex = this._resolveColorToHex(v);
+        if (hex) swatch.value = hex;
+      };
+
+      colorInput.setAttribute('aria-invalid', 'false');
+      updateError(colorInput.value);
+      syncSwatch(colorInput.value);
+
+      colorInput.addEventListener('input', (e) => {
+        e.stopPropagation();
+        updateError(e.target.value);
+        syncSwatch(e.target.value);
+        this._updateThreshold(index, 'color', e.target.value);
+      });
+      colorInput.addEventListener('change', (e) => e.stopPropagation());
+
+      swatch.addEventListener('input', (e) => {
+        e.stopPropagation();
+        colorInput.value = e.target.value;
+        updateError(e.target.value);
+        this._updateThreshold(index, 'color', e.target.value);
+      });
+      swatch.addEventListener('change', (e) => e.stopPropagation());
+
+      // Called when the config comes back from HA: update values in place so the
+      // focused control (or the one Tab just moved to) is never destroyed
+      item._syncThreshold = (t) => {
+        const color = t.color || '';
+        if (!valueInput.matches(':focus') && valueInput.value !== String(t.value)) {
+          valueInput.value = t.value;
+        }
+        if (!colorInput.matches(':focus') && colorInput.value !== color) {
+          colorInput.value = color;
+          updateError(color);
+          syncSwatch(color);
+        }
+      };
+
+      row.append(valueInput, colorInput, swatch, removeBtn);
+      item.append(row, error);
+      this.container_threshold.appendChild(item);
     };
 
     if (!this._config.color_thresholds) this._config.color_thresholds = [];
     this._config.color_thresholds.forEach((t, i) => createRow(t, i));
+  }
+
+  // Rebuild rows only when the number of thresholds changed; otherwise update in place
+  _syncThresholdEditor() {
+    if (!this.container_threshold) return;
+    const thresholds = this._config.color_thresholds || [];
+    const items = this.container_threshold.children;
+    if (items.length !== thresholds.length) {
+      this._refreshThresholdEditor();
+      return;
+    }
+    thresholds.forEach((t, i) => items[i]._syncThreshold(t));
   }
 
   _refreshThresholdEditor() {

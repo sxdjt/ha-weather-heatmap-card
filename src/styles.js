@@ -34,9 +34,13 @@ export function createStyleElement() {
     }
 
     /* Navigation controls */
+    /* Wrap instead of overflowing: at a 6-column sections width the row was 15px wider
+       than the card (more with text spacing) and ha-card's overflow: hidden cut off the
+       aggregation button. The hidden Current button still takes up space. */
     .nav-controls {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
     }
 
@@ -55,9 +59,11 @@ export function createStyleElement() {
       transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
 
+    /* Hover tints the background and keeps primary text color: white on
+       --primary-color is 2.6:1 */
     .nav-btn:hover:not(:disabled) {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
+      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15);
+      color: var(--primary-text-color);
       border-color: var(--primary-color);
     }
 
@@ -73,7 +79,7 @@ export function createStyleElement() {
 
     .nav-btn-current {
       background: transparent;
-      color: var(--primary-color);
+      color: var(--primary-text-color);
       border: 1.5px solid var(--primary-color);
       border-radius: 8px;
       padding: 5px 10px;
@@ -84,8 +90,8 @@ export function createStyleElement() {
     }
 
     .nav-btn-current:hover {
-      background: var(--primary-color);
-      color: var(--text-primary-color, white);
+      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15);
+      color: var(--primary-text-color);
     }
 
     .nav-btn-current:focus {
@@ -182,9 +188,10 @@ export function createStyleElement() {
       position: relative;
     }
 
-    /* Today's date column: accent color + dot below the number */
+    /* Today's date column: bold + accent dot below the number. Text stays primary
+       text color: --primary-color text is 2.6:1 on the light theme */
     .date-header.today {
-      color: var(--primary-color);
+      color: var(--primary-text-color);
       font-weight: 700;
     }
 
@@ -371,7 +378,6 @@ export function createStyleElement() {
       letter-spacing: 0.7px;
       color: var(--secondary-text-color);
       font-weight: 500;
-      opacity: 0.85;
     }
 
     .stat-value {
@@ -393,7 +399,6 @@ export function createStyleElement() {
       text-align: center;
       font-size: 11px;
       color: var(--secondary-text-color);
-      opacity: 0.8;
     }
 
     /* Loading indicator - thin bar at top of card, no layout shift */
@@ -441,7 +446,8 @@ export function createStyleElement() {
       padding: 16px;
       margin: 16px;
       background: rgba(244, 67, 54, 0.1);
-      color: var(--error-color, #f44336);
+      /* Text stays primary color for 4.5:1; red only on the bar and icon */
+      color: var(--primary-text-color);
       border-radius: 4px;
       border-left: 4px solid var(--error-color, #f44336);
     }
@@ -449,6 +455,7 @@ export function createStyleElement() {
     .error-icon {
       font-size: 20px;
       flex-shrink: 0;
+      color: var(--error-color, #f44336);
     }
 
     .error-text {

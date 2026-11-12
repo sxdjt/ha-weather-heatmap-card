@@ -72,6 +72,16 @@ export class SensorHeatmapCard extends HTMLElement {
     // Event delegation for all clicks
     this._content.addEventListener('click', this._handleClick.bind(this));
 
+    // Cells are <div role="button">: Enter and Space must activate them like a click.
+    // Native <button>s (navigation) already do this, so they are skipped here.
+    this._content.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = e.target.closest('[role="button"]');
+      if (!el || el.tagName === 'BUTTON') return;
+      e.preventDefault();
+      this._handleClick(e);
+    });
+
     // Response cache: url -> { data, expiry }
     this._responseCache = new Map();
   }
@@ -1109,9 +1119,26 @@ export class SensorHeatmapCard extends HTMLElement {
     return rowHour >= startHour || rowHour <= endHour;
   }
 
+  // Selector that finds the same control after a re-render, or null if the element
+  // has nothing stable to match on
+  _focusKeyOf(el) {
+    if (!el) return null;
+    if (el.dataset.action) return `[data-action="${el.dataset.action}"]`;
+    if (el.dataset.direction) return `[data-direction="${el.dataset.direction}"]`;
+    if (el.dataset.date) {
+      const kind = el.classList.contains('forecast-cell') ? '.forecast-cell' : '.cell';
+      return `${kind}[data-date="${CSS.escape(el.dataset.date)}"]`;
+    }
+    return null;
+  }
+
   // Main render method
   _render() {
     if (!this._config || !this._hass) return;
+
+    // innerHTML replaces every element, so focus would drop to the page after each
+    // navigation, aggregation toggle or data refresh. Note the focused control first.
+    const focusKey = this._focusKeyOf(this.shadowRoot.activeElement);
 
     this._content.innerHTML = `
       ${this._isLoading ? '<div class="loading-bar"></div>' : ''}
@@ -1150,6 +1177,16 @@ export class SensorHeatmapCard extends HTMLElement {
         dataGrid.style.gap = sizing.cellGap;
         dataGrid.style.gridAutoRows = sizing.cellHeight;
         dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${sizing.cellWidth})`;
+      }
+    }
+
+    // Put focus back on the same control. A nav button can come back disabled (Next at
+    // the current period) or hidden (Current once you are back at today), so focus() does
+    // nothing; then fall back to Previous so focus stays in the card.
+    if (focusKey) {
+      this._content.querySelector(focusKey)?.focus();
+      if (!this._content.contains(this.shadowRoot.activeElement)) {
+        this._content.querySelector('[data-direction="back"]')?.focus();
       }
     }
   }
@@ -1204,7 +1241,7 @@ export class SensorHeatmapCard extends HTMLElement {
   _renderError() {
     return `
       <div class="error-message">
-        <div class="error-icon">!</div>
+        <div class="error-icon" aria-hidden="true">!</div>
         <div class="error-text">
           <strong>${escapeHtml(this._error.message)}</strong>
           <div class="error-details">${escapeHtml(this._error.details)}</div>

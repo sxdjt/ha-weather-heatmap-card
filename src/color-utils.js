@@ -265,8 +265,36 @@ export function interpolateColor(color1, color2, t, method = 'hsl') {
 }
 
 /**
+ * WCAG 2.x relative luminance of an sRGB color (0 = black, 1 = white).
+ * @param {number} r - Red 0-255
+ * @param {number} g - Green 0-255
+ * @param {number} b - Blue 0-255
+ * @returns {number} - Relative luminance
+ */
+function relativeLuminance(r, g, b) {
+  const lin = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * Black or white, whichever has the higher WCAG contrast ratio against the fill.
+ * A perceived-brightness cutoff picks white on mid-tone fills such as #f44336
+ * at under 4.5:1, so compare the actual ratios instead.
+ * @returns {string} - '#000000' or '#ffffff'
+ */
+function blackOrWhite(r, g, b) {
+  const lum = relativeLuminance(r, g, b);
+  const onBlack = (lum + 0.05) / 0.05;
+  const onWhite = 1.05 / (lum + 0.05);
+  return onBlack >= onWhite ? '#000000' : '#ffffff';
+}
+
+/**
  * Get contrasting text color (black or white) for a background color.
- * Uses luminance calculation to determine optimal contrast.
+ * Picks whichever has the higher WCAG contrast ratio.
  * @param {string} backgroundColor - Background color string
  * @returns {string} - '#000000' for light backgrounds, '#ffffff' for dark
  */
@@ -281,8 +309,7 @@ export function getContrastTextColor(backgroundColor) {
     const r = parseInt(rgbMatch[1], 10);
     const g = parseInt(rgbMatch[2], 10);
     const b = parseInt(rgbMatch[3], 10);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? '#000000' : '#ffffff';
+    return blackOrWhite(r, g, b);
   }
 
   // Handle hex format
@@ -291,8 +318,7 @@ export function getContrastTextColor(backgroundColor) {
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? '#000000' : '#ffffff';
+    return blackOrWhite(r, g, b);
   }
 
   return 'var(--primary-text-color)';

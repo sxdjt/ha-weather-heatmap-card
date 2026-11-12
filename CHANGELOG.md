@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.11 (2026-11-11)
+
+### Fixed
+
+- Cell text uses black or white by actual contrast with the fill. White was below 4.5:1 on 4 default fills (red, deep orange, two blues).
+- Text contrast: today's date, the Current button, entity name, stat labels and error messages now meet 4.5:1.
+- Keyboard: Enter or Space activates cells; focus stays in place after navigation and data refresh.
+- The navigation row wraps instead of cutting off the aggregation button on narrow cards.
+- Visual editor: labeled switches and fields, no false required markers, threshold rows with a color text field and error message, and focus kept while editing thresholds.
+
 ## 2026.7.25 (2026-07-25)
 
 ### Changed
