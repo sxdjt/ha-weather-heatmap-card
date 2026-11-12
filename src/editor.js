@@ -314,10 +314,16 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       wrapper.style.alignItems = 'center';
       wrapper.style.gap = '8px';
 
-      // A <label> beside ha-switch is not associated with it (shadow DOM), so the
-      // switch carries its own name and the visible text is a plain span
+      // A <label> beside ha-switch is not associated with it (shadow DOM), so the visible
+      // text is a plain span. In current HA (Web Awesome) only slotted text names the
+      // switch's inner input, so the label is slotted visually hidden; the host aria-label
+      // covers older MWC-based releases.
       input = document.createElement('ha-switch');
       input.setAttribute('aria-label', label);
+      const switchName = document.createElement('span');
+      switchName.className = 'visually-hidden';
+      switchName.textContent = label;
+      input.appendChild(switchName);
       const text = document.createElement('span');
       text.textContent = label;
       wrapper.appendChild(input);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.12 (2026-11-12)
+
+Accessibility improvements (screen reader).
+
+### Fixed
+
+- Visual editor: switches are announced by name in current Home Assistant.
+
 ## 2026.11.11 (2026-11-11)
 
 ### Fixed
