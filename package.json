@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/ha-weather-heatmap-card.js",
   "scripts": {
-    "prebuild": "npm audit --audit-level=high",
+    "prebuild": "node scripts/audit-gate.js",
     "build": "rollup -c",
     "watch": "rollup -c --watch",
     "test": "vitest run",
