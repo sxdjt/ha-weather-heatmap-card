@@ -42,6 +42,48 @@ const EDITOR_STYLES = `
   }
 `;
 
+// Values the card uses when a key is unset, shown in the editor fields. Type-specific
+// defaults are resolved in _defaultFor().
+const EDITOR_DEFAULTS = {
+  card_type: 'temperature',
+  entity: '',
+  title: '',
+  days: 7,
+  time_interval: 2,
+  time_format: '24',
+  refresh_interval: 300,
+  click_action: 'more-info',
+  show_entity_name: false,
+  show_title: true,
+  show_month_year: true,
+  show_legend: false,
+  show_footer: true,
+  cell_height: 36,
+  cell_width: '1fr',
+  cell_padding: 2,
+  cell_gap: 2,
+  cell_font_size: 11,
+  compact_header: false,
+  rounded_corners: true,
+  interpolate_colors: false,
+  color_interpolation: 'hsl',
+  data_source: 'auto',
+  start_hour: 0,
+  end_hour: 23,
+  aggregation_mode: 'average',
+  unit: '',
+  show_degree_symbol: true,
+  fill_gaps: false,
+  fill_gaps_style: 'dimmed',
+  forecast_entity: '',
+  forecast_days: 3,
+  forecast_type: 'daily',
+  forecast_dim: 0.5,
+  direction_entity: '',
+  show_direction: true,
+  direction_format: 'arrow',
+};
+
 /**
  * Visual editor for the Sensor Heatmap Card.
  * Shows all common fields, and conditionally shows temperature-only or
@@ -85,53 +127,9 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       await entitiesCard.constructor.getConfigElement();
     }
 
-    // Merged defaults covering both card types
-    const defaults = {
-      card_type: 'temperature',
-      entity: '',
-      title: '',
-      days: 7,
-      time_interval: 2,
-      time_format: '24',
-      refresh_interval: 300,
-      click_action: 'more-info',
-      show_entity_name: false,
-      show_title: true,
-      show_month_year: true,
-      show_legend: false,
-      show_footer: true,
-      cell_height: 36,
-      cell_width: '1fr',
-      cell_padding: 2,
-      cell_gap: 2,
-      cell_font_size: 11,
-      compact_header: false,
-      rounded_corners: true,
-      interpolate_colors: false,
-      color_interpolation: 'hsl',
-      color_thresholds: [],
-      data_source: 'auto',
-      // Temperature-specific defaults
-      start_hour: 0,
-      end_hour: 23,
-      aggregation_mode: 'average',
-      decimals: 1,
-      unit: '',
-      show_degree_symbol: true,
-      fill_gaps: false,
-      statistic_type: 'mean',
-      // Forecast (temperature-only)
-      forecast_entity: '',
-      forecast_days: 3,
-      forecast_type: 'daily',
-      forecast_dim: 0.5,
-      // Wind-specific defaults
-      direction_entity: '',
-      show_direction: true,
-      direction_format: 'arrow',
-    };
-
-    this._config = { ...defaults, ...this._config };
+    // Only keys the user set are kept in the config; EDITOR_DEFAULTS are shown in the
+    // fields but never written back (the old merge saved every default, e.g. decimals 1
+    // on humidity cards, whose card default is 0).
 
     if (this.content) {
       this._updateValues();
@@ -177,12 +175,14 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'entity', key: 'entity', label: 'Entity', required: true },
       { type: 'text', key: 'title', label: 'Title' },
       { type: 'number', key: 'days', label: 'Days', min: 1, max: 365 },
-      { type: 'number', key: 'time_interval', label: 'Time Interval (hours)', min: 1, max: 24 },
+      // The card accepts only these intervals (they divide the day evenly)
+      { type: 'select', key: 'time_interval', label: 'Time Interval (hours)', numeric: true,
+        options: { 1: '1', 2: '2', 3: '3', 4: '4', 6: '6', 8: '8', 12: '12', 24: '24' } },
       { type: 'select', key: 'time_format', label: 'Time Format',
         options: { 24: '24h', 12: '12h' } },
       { type: 'select', key: 'data_source', label: 'Data Source',
         options: {
-          'auto': 'Auto (statistics for past, history for current)',
+          'auto': 'Auto (long-term statistics)',
           'history': 'History only (limited by purge_keep_days)',
           'statistics': 'Statistics only (long-term hourly data)'
         } },
@@ -226,7 +226,9 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2 },
-      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity', 'generic'] },
+      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)' },
+      { type: 'select', key: 'fill_gaps_style', label: 'Filled Cell Style',
+        options: { dimmed: 'Dimmed (reduced opacity, dashed border)', none: 'Same as real data' } },
       // Temperature-only fields
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
@@ -275,7 +277,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     }
   }
 
-  _createField({ type, key, label, min, max, step, options, required, showWhen }) {
+  _createField({ type, key, label, min, max, step, options, required, showWhen, numeric }) {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
     wrapper.style.flexDirection = 'column';
@@ -353,7 +355,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       addBtn.style.alignSelf = 'flex-start';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newThresholds = [...this._config.color_thresholds];
+        const newThresholds = [...(this._config.color_thresholds || [])];
         newThresholds.push({ value: 0, color: '#ffffff' });
         this._onFieldChange('color_thresholds', newThresholds);
         this._refreshThresholdEditor();
@@ -392,7 +394,12 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
         input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          const value = type === 'number' ? Number(e.detail.value) : e.detail.value;
+          // A cleared number field unsets the key; Number('') would store 0, which the
+          // card rejects for several fields (cell height, forecast days)
+          const raw = e.detail.value;
+          const value = type === 'number'
+            ? (raw === '' || raw === null || raw === undefined || Number.isNaN(Number(raw)) ? undefined : Number(raw))
+            : raw;
           this._onFieldChange(key, value);
         });
 
@@ -410,7 +417,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
         input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          this._onFieldChange(key, e.detail.value);
+          // Select values are strings; numeric selects store numbers
+          this._onFieldChange(key, numeric ? Number(e.detail.value) : e.detail.value);
         });
       }
 
@@ -431,6 +439,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
     const updated = { ...this._config, [configKey]: value };
+    if (value === undefined) delete updated[configKey];
     this._config = updated;
 
     // Update field visibility whenever card_type changes
@@ -471,14 +480,24 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
       if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
-      const value = this._config[configKey];
+      const value = this._config[configKey] ?? this._defaultFor(configKey);
 
       if (field.type === 'switch') {
         input.checked = !!value;
+      } else if (field.type === 'select') {
+        input.value = value !== undefined ? String(value) : '';
       } else {
         input.value = value !== undefined ? value : '';
       }
     }
+  }
+
+  // The value the card uses for an unset key, for display only
+  _defaultFor(key) {
+    const cardType = this._config.card_type || 'temperature';
+    if (key === 'decimals') return cardType === 'humidity' ? 0 : 1;
+    if (key === 'statistic_type') return cardType === 'windspeed' ? 'max' : 'mean';
+    return EDITOR_DEFAULTS[key];
   }
 
   // Hex value for the color picker, or null when the color cannot be shown there
@@ -494,7 +513,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _updateThreshold(index, key, value) {
-    const newThresholds = [...this._config.color_thresholds];
+    const newThresholds = [...(this._config.color_thresholds || [])];
     newThresholds[index] = { ...newThresholds[index], [key]: value };
     this._onFieldChange('color_thresholds', newThresholds);
   }
@@ -540,7 +559,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       removeBtn.append('Remove', hidden);
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newThresholds = [...this._config.color_thresholds];
+        const newThresholds = [...(this._config.color_thresholds || [])];
         newThresholds.splice(index, 1);
         this._onFieldChange('color_thresholds', newThresholds);
         this._refreshThresholdEditor();
@@ -624,8 +643,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       this.container_threshold.appendChild(item);
     };
 
-    if (!this._config.color_thresholds) this._config.color_thresholds = [];
-    this._config.color_thresholds.forEach((t, i) => createRow(t, i));
+    (this._config.color_thresholds || []).forEach((t, i) => createRow(t, i));
   }
 
   // Rebuild rows only when the number of thresholds changed; otherwise update in place
