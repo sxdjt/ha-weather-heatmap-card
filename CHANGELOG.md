@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `show_title` (and a Show Title switch in the editor) hides the header title. An empty `title` could not, because it falls back to the default title.
+
 ### Fixed
 
 - A `refresh_interval` that is negative, not a number, or tiny no longer re-fetches continuously. Invalid values use the 300-second default; values below 10 seconds (the editor's minimum) use 10.

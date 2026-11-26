@@ -50,10 +50,12 @@ describe('review sweep findings', () => {
   });
 
   // W3 (B4): waterfall precedent - an empty title hides the header title
-  it("title: '' shows no title", { todo: "config.title || defaultTitle replaces '' with the default" }, async () => {
+  it("show_title: false hides the title; title: '' keeps the default", async () => {
     quiet();
-    const card = await makeCard({ entity: 'sensor.t', days: 1, title: '' }, temp());
-    assert.equal(text(content(card).querySelector('.title')), '');
+    const hidden = await makeCard({ entity: 'sensor.t', days: 1, show_title: false }, temp());
+    assert.equal(content(hidden).querySelectorAll('.title').length, 0);
+    const blank = await makeCard({ entity: 'sensor.t', days: 1, title: '' }, temp());
+    assert.equal(text(content(blank).querySelector('.title')), 'Temperature History');
   });
 
   // W9 (B8): generic sensors have no default unit

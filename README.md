@@ -152,6 +152,7 @@ entity: sensor.wind_speed
 | `show_footer` | boolean | `true` | Show Min/Max/Avg statistics footer panel |
 | `show_legend` | boolean | `false` | Show color legend bar |
 | `show_month_year` | boolean | `true` | Show month/year label above the grid |
+| `show_title` | boolean | `true` | Show the title in the header. An empty `title` keeps the default title; use `show_title: false` to hide it |
 | `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |
 | `time_format` | string | `"24"` | Time format: `"12"` or `"24"` |
 | `time_interval` | number | `2` | Hours per row: 1, 2, 3, 4, 6, 8, 12 or 24 |

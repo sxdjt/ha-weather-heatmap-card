@@ -235,6 +235,9 @@ export class SensorHeatmapCard extends HTMLElement {
       // Display options
       show_entity_name: config.show_entity_name || false,
       show_legend: config.show_legend || false,
+      // An empty title keeps the default: the editor used to save title: '' into every
+      // config, so '' cannot mean "no title". show_title: false hides it.
+      show_title: config.show_title !== false,             // Default true
       show_month_year: config.show_month_year !== false,  // Default true
       show_footer: config.show_footer !== false,           // Default true
 
@@ -1150,7 +1153,7 @@ export class SensorHeatmapCard extends HTMLElement {
     this._content.innerHTML = `
       ${this._isLoading ? '<div class="loading-bar"></div>' : ''}
       <div class="card-header">
-        <span class="title">${escapeHtml(this._config.title)}</span>
+        ${this._config.show_title ? `<span class="title">${escapeHtml(this._config.title)}</span>` : ''}
         ${this._renderNavControls()}
       </div>
 
