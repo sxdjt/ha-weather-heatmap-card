@@ -82,8 +82,6 @@ export class SensorHeatmapCard extends HTMLElement {
       this._handleClick(e);
     });
 
-    // Response cache: url -> { data, expiry }
-    this._responseCache = new Map();
   }
 
   // Home Assistant required method: set card configuration
@@ -419,23 +417,6 @@ export class SensorHeatmapCard extends HTMLElement {
   _isDataStale() {
     if (!this._historyData || !this._lastFetch) return true;
     return (Date.now() - this._lastFetch) > this._config.refresh_interval * 1000;
-  }
-
-  async fetchWithCache(url, timeoutMs = 30000, ttlMs = 5 * 60 * 1000) {
-    const now = Date.now();
-    const cacheKey = `${url}_offset${this._viewOffset}`;
-    const cached = this._responseCache.get(cacheKey);
-    if (cached && cached.expiry > now) return cached.data;
-
-    const data = await Promise.race([
-      this._hass.callApi('GET', url),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
-
-    this._responseCache.set(cacheKey, { data, expiry: now + ttlMs });
-    return data;
   }
 
   _getDataSource() {
