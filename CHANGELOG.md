@@ -17,6 +17,7 @@
 
 ### Fixed
 
+- Wind cards use the color scale for the sensor's unit (km/h, m/s, knots) from the first render. Home Assistant sets the card's state before showing it, and the unit was only detected afterwards, so the mph scale was used until the next refresh (up to 5 minutes).
 - `data_source: auto` (the default) falls back to the recorder history when the sensor has no long-term statistics (no `state_class`). The card showed an empty grid.
 - Visual editor: only the options you change are saved. The editor wrote every default into the config, so a humidity card edited in the editor got 1 decimal (its default is 0) and a wind card got `statistic_type: mean`.
 - Visual editor: Time Interval offers only the values the card accepts (1, 2, 3, 4, 6, 8, 12, 24); typing 5 broke the card.

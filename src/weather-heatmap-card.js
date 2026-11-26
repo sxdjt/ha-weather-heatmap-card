@@ -344,19 +344,22 @@ export class SensorHeatmapCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
 
-    if (!this._config || !this.isConnected) return;
+    if (!this._config) return;
 
-    // Auto-select wind thresholds based on detected unit (first time only, no custom thresholds)
+    // Auto-select wind thresholds based on detected unit (first time only, no custom
+    // thresholds). Done before the connected check: HA sets hass before it connects the
+    // card, and the first fetch (from connectedCallback) must already use the right scale.
     if (this._config.card_type === 'windspeed' &&
         !this._config._hasCustomThresholds &&
         !this._config._thresholdsInitialized) {
+      // _getUnit() always returns a unit for wind (mph when the entity has none)
       const detectedUnit = this._getUnit();
-      if (detectedUnit) {
-        this._config.color_thresholds = getWindThresholdsForUnit(detectedUnit).slice();
-        this._config._thresholdsInitialized = true;
-        console.log(`Weather Heatmap: Auto-selected ${detectedUnit} thresholds`);
-      }
+      this._config.color_thresholds = getWindThresholdsForUnit(detectedUnit).slice();
+      this._config._thresholdsInitialized = true;
+      console.log(`Weather Heatmap: Auto-selected ${detectedUnit} thresholds`);
     }
+
+    if (!this.isConnected) return;
 
     if (this._viewOffset === 0 && this._isDataStale()) {
       this._fetchHistoryData();

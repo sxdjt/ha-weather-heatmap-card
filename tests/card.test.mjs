@@ -143,3 +143,12 @@ describe('review sweep findings', () => {
     assert.ok(card._processedData.rows.flatMap((r) => r.cells).some((c) => c.speed === 12));
   });
 });
+
+describe('wind unit detection', () => {
+  it('a km/h wind card uses the km/h scale from the first fetch (HA sets hass before connecting)', async () => {
+    quiet();
+    const hass = makeHass({ states: { 'sensor.w': sensor(5, { unit_of_measurement: 'km/h' }) }, stats: { 'sensor.w': [statRow(3, { mean: 30, max: 30, min: 30 })] } });
+    const card = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', days: 1 }, hass);
+    assert.equal(card._config.color_thresholds[12].value, 118);
+  });
+});

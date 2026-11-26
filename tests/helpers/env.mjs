@@ -98,9 +98,10 @@ export async function makeCard(config, hass, tag = 'ha-weather-heatmap-card') {
   cards.push(card);
   card.events = [];
   card.addEventListener('hass-more-info', (e) => card.events.push(e.detail));
+  // Same order as Home Assistant (hui-card): config, then hass, then connect
   card.setConfig(config);
-  document.body.appendChild(card);
   if (hass) card.hass = hass;
+  document.body.appendChild(card);
   await settle();
   return card;
 }
