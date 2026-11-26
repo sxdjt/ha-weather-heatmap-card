@@ -479,3 +479,100 @@ describe('interaction', () => {
     assert.equal(card.shadowRoot.querySelector('ha-card').innerHTML, '');
   });
 });
+
+describe('remaining branches', () => {
+  it('statistics rows with missing fields; several rows per bucket; buckets without a usable value', async () => {
+    quiet();
+    mock.timers.enable({ apis: ['Date'], now: new Date('2026-01-15T23:30:00Z').getTime() });
+    const at = (h) => new Date(Date.UTC(2026, 0, 15, h)).toISOString();
+    const stats = { [T]: [
+      { start: at(2), mean: 50, min: 45, max: 55 }, { start: at(3), mean: 52, min: 40, max: 60 },
+      { start: at(6), mean: 30, max: null, min: null }, { start: at(8), mean: null, max: 70, min: null }, { start: at(10), mean: null, max: null, min: null },
+    ] };
+    const card = await makeCard({ entity: T, days: 1, decimals: 2 }, makeHass({ states: { [T]: sensor('x') }, stats }));
+    assert.equal(card._config.decimals, 2);
+    const byHour = (c) => Object.fromEntries(c._processedData.rows.map((r) => [r.hour, r.cells[0].temperature]));
+    assert.deepEqual([byHour(card)[2], byHour(card)[6], byHour(card)[8]], [51, 30, null]);
+    card._activeAggregationMode = 'max';
+    card._processData();
+    assert.deepEqual([byHour(card)[2], byHour(card)[6], byHour(card)[8]], [60, 30, 70]);
+    card._activeAggregationMode = 'min';
+    card._processData();
+    assert.equal(byHour(card)[2], 40);
+    const hist = makeHass({ states: { [T]: sensor('x') }, history: { [T]: [{ state: 'bad', last_changed: at(4) }] } });
+    const hc = await makeCard({ entity: T, days: 1, data_source: 'history' }, hist);
+    assert.equal(byHour(hc)[4], null);
+  });
+
+  it('wind: last_updated timestamps, several readings per bucket, min mode, unusable readings', async () => {
+    quiet();
+    mock.timers.enable({ apis: ['Date'], now: new Date('2026-01-15T23:30:00Z').getTime() });
+    const at = (h, m = 0) => new Date(Date.UTC(2026, 0, 15, h, m)).toISOString();
+    const hass = makeHass({ states: { 'sensor.w': sensor('x'), 'sensor.d': sensor('x') }, history: {
+      'sensor.w': [{ state: '10', last_updated: at(2) }, { state: '4', last_changed: at(2, 30) }, { state: '7', last_changed: at(3) }, { state: 'calm', last_changed: at(6) }],
+      'sensor.d': [{ state: '90', last_updated: at(2) }, { state: '0', last_changed: at(12) }],
+    } });
+    const card = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', direction_entity: 'sensor.d', days: 1, data_source: 'history', aggregation_mode: 'min' }, hass);
+    const bucket = (h) => card._processedData.rows.find((r) => r.hour === h).cells[0];
+    assert.deepEqual([bucket(2).speed, bucket(6).speed], [4, null]);
+    const stats = makeHass({ states: { 'sensor.w': sensor('x') }, stats: { 'sensor.w': [{ start: at(2), mean: 5, max: null, min: null }, { start: at(4), mean: null, max: null, min: 2 }] } });
+    const sc = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', days: 1 }, stats);
+    assert.equal(sc._processedData.rows.find((r) => r.hour === 2).cells[0].speed, 5);
+    assert.equal(sc._processedData.rows.find((r) => r.hour === 4).cells[0].speed, null);
+  });
+
+  it('a hass update on a connected card refetches once the data is stale', async () => {
+    quiet();
+    const hass = tempHass();
+    const card = await makeCard({ entity: T, days: 1 }, hass);
+    const n = hass.calls.ws.length;
+    card._lastFetch = 1;
+    card.hass = hass;
+    await settle();
+    assert.ok(hass.calls.ws.length > n);
+  });
+
+  it('staleness, hass while browsing history, forecast response without data', async () => {
+    quiet();
+    const hass = tempHass();
+    const card = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home' }, hass);
+    card._lastFetch = 0;
+    assert.equal(card._isDataStale(), true);
+    card._viewOffset = -1;
+    const n = hass.calls.ws.length;
+    card.hass = hass;
+    assert.equal(hass.calls.ws.length, n);
+    const empty = tempHass();
+    const ws = empty.callWS;
+    empty.callWS = async (msg) => (msg.type === 'call_service' ? {} : ws(msg));
+    const ec = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home' }, empty);
+    assert.deepEqual(ec._forecastData, {});
+  });
+
+  it('forecast row without degree symbol and with a missing low; filled cells dimmed by default', async () => {
+    quiet();
+    const tomorrow = new Date(Date.now() + 86400000);
+    tomorrow.setHours(12, 0, 0, 0);
+    const hass = tempHass({ forecast: { 'weather.home': [{ datetime: tomorrow.toISOString(), temperature: 70, templow: null, condition: 'rainy' }] } });
+    const card = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home', show_degree_symbol: false, fill_gaps: true }, hass);
+    const cell = [...card.shadowRoot.querySelectorAll('.forecast-row .forecast-cell')].find((c) => !c.classList.contains('empty'));
+    assert.match(cell.getAttribute('aria-label'), /high 70.0, low -/);
+    assert.ok(card.shadowRoot.querySelectorAll('.cell.filled').length > 0);
+  });
+
+  it('focus keys for navigation buttons and forecast cells', async () => {
+    quiet();
+    const tomorrow = new Date(Date.now() + 86400000);
+    tomorrow.setHours(12, 0, 0, 0);
+    const card = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home' }, tempHass({ forecast: { 'weather.home': [{ datetime: tomorrow.toISOString(), temperature: 70, templow: 50 }] } }));
+    card.shadowRoot.querySelector('[data-direction="back"]').focus();
+    card._render();
+    assert.equal(card.shadowRoot.activeElement?.dataset.direction, 'back');
+    const fc = [...card.shadowRoot.querySelectorAll('.forecast-cell')].find((c) => c.dataset.date);
+    fc.focus();
+    const date = fc.dataset.date;
+    card._render();
+    assert.ok(card.shadowRoot.activeElement?.classList.contains('forecast-cell'));
+    assert.equal(card.shadowRoot.activeElement?.dataset.date, date);
+  });
+});

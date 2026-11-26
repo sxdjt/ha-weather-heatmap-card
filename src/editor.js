@@ -453,7 +453,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _updateValues() {
-    if (!this._config) return;
+    // setConfig always leaves _config an object
 
     for (const key in this.fields) {
       const field = this.fields[key];
@@ -472,12 +472,13 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   
       const value = this._config[configKey] ?? this._defaultFor(configKey);
 
+      // Every field has a display default (EDITOR_DEFAULTS / _defaultFor), so value is set
       if (field.type === 'switch') {
         input.checked = !!value;
       } else if (field.type === 'select') {
-        input.value = value !== undefined ? String(value) : '';
+        input.value = String(value);
       } else {
-        input.value = value !== undefined ? value : '';
+        input.value = value;
       }
     }
   }
@@ -553,7 +554,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       removeBtn.append('Remove', hidden);
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newThresholds = [...(this._config.color_thresholds || [])];
+        // A row exists only for an entry in color_thresholds
+        const newThresholds = [...this._config.color_thresholds];
         newThresholds.splice(index, 1);
         this._onFieldChange('color_thresholds', newThresholds);
         this._refreshThresholdEditor();
@@ -637,7 +639,8 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       this.container_threshold.appendChild(item);
     };
 
-    (this._config.color_thresholds || []).forEach((t, i) => createRow(t, i));
+    // Called only when the row count differs from color_thresholds, so the list exists
+    this._config.color_thresholds.forEach((t, i) => createRow(t, i));
   }
 
   // Rebuild rows only when the number of thresholds changed; otherwise update in place

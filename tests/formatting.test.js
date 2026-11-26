@@ -253,3 +253,11 @@ describe('averageDirection', () => {
     assert.equal(averageDirection([270, 270]), 270);
   });
 });
+
+describe('escapeHtml', () => {
+  it('returns an empty string for null and undefined (no DOM needed)', async () => {
+    const { escapeHtml } = await import('../src/formatting.js');
+    assert.equal(escapeHtml(null), '');
+    assert.equal(escapeHtml(undefined), '');
+  });
+});

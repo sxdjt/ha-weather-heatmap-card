@@ -344,8 +344,7 @@ export class SensorHeatmapCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
 
-    if (!this._config) return;
-
+    // The constructor sets _config to {}, so it is always an object here.
     // Auto-select wind thresholds based on detected unit (first time only, no custom
     // thresholds). Done before the connected check: HA sets hass before it connects the
     // card, and the first fetch (from connectedCallback) must already use the right scale.
@@ -370,7 +369,7 @@ export class SensorHeatmapCard extends HTMLElement {
   getCardSize() {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
-    const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
+    const cellHeightPx = parseFloat(sizing.cellHeight);  // setConfig validated it (10-200)
     // The daily high/low forecast row adds roughly one extra cell height.
     // Hourly forecast reuses the existing hourly cells, so it adds no height.
     const forecastPx = this._showForecastRow() ? cellHeightPx : 0;
@@ -382,7 +381,7 @@ export class SensorHeatmapCard extends HTMLElement {
   getGridOptions() {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
-    const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
+    const cellHeightPx = parseFloat(sizing.cellHeight);  // setConfig validated it (10-200)
     const forecastPx = this._showForecastRow() ? cellHeightPx : 0;
     const gridRows = Math.ceil((rows * cellHeightPx + forecastPx + 100) / 50);
     return {
@@ -732,7 +731,8 @@ export class SensorHeatmapCard extends HTMLElement {
     Object.keys(buckets).forEach(key => {
       const bucket = buckets[key];
       map[key] = {
-        temperature: bucket.count > 0 ? bucket.sum / bucket.count : null,
+        // A bucket exists only once a forecast hour with a temperature landed in it
+        temperature: bucket.sum / bucket.count,
         condition: bucket.condition,
       };
     });
@@ -757,9 +757,10 @@ export class SensorHeatmapCard extends HTMLElement {
     const { temperature, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
-    const activeMode = this._activeAggregationMode || 'average';
-    // Statistics rows carry mean/min/max: read the field for the active mode
-    const statField = { average: 'mean', max: 'max', min: 'min' }[activeMode] || 'mean';
+    // setConfig always sets the mode. Statistics rows carry mean/min/max: read the
+    // field for the active mode.
+    const activeMode = this._activeAggregationMode;
+    const statField = { average: 'mean', max: 'max', min: 'min' }[activeMode];
     const isStatistics = dataSource === 'statistics';
 
     // Build grid using running statistics (O(1) memory per bucket)
@@ -943,12 +944,12 @@ export class SensorHeatmapCard extends HTMLElement {
     const { speed, direction, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
-    const activeMode = this._activeAggregationMode || 'max';
+    const activeMode = this._activeAggregationMode;  // always set by setConfig
     const isStatistics = dataSource === 'statistics';
 
     // Maps toggle mode to the HA statistics field name (statistics path only)
     const modeToStatField = { average: 'mean', max: 'max', min: 'min' };
-    const statField = modeToStatField[activeMode] || 'max';
+    const statField = modeToStatField[activeMode];
 
     const grid = {};
 
@@ -1230,8 +1231,8 @@ export class SensorHeatmapCard extends HTMLElement {
    */
   _renderAggregationToggle() {
     const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
-    const mode = this._activeAggregationMode || 'average';
-    const label = AGG_LABELS[mode] || mode;
+    const mode = this._activeAggregationMode;
+    const label = AGG_LABELS[mode];
     return `
       <button class="nav-btn-current"
               data-action="toggle-aggregation"
@@ -1698,7 +1699,7 @@ export class SensorHeatmapCard extends HTMLElement {
    */
   _cycleAggregationMode() {
     const CYCLE = ['average', 'min', 'max'];
-    const currentIndex = CYCLE.indexOf(this._activeAggregationMode || 'average');
+    const currentIndex = CYCLE.indexOf(this._activeAggregationMode);
     this._activeAggregationMode = CYCLE[(currentIndex + 1) % CYCLE.length];
     this._processData();
     this._render();
@@ -1743,7 +1744,7 @@ export class SensorHeatmapCard extends HTMLElement {
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
         <div>Speed: ${speed.toFixed(1)} ${escapeHtml(unit)}${dirText}</div>
-        <div>Mode: ${this._activeAggregationMode || 'max'}</div>
+        <div>Mode: ${this._activeAggregationMode}</div>
         ${partialNote}
       `;
     } else {
@@ -1754,7 +1755,7 @@ export class SensorHeatmapCard extends HTMLElement {
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
         <div>${this._valueLabel()}: ${temperature.toFixed(decimals)} ${escapeHtml(unit)}</div>
-        <div>Mode: ${this._activeAggregationMode || 'average'}</div>
+        <div>Mode: ${this._activeAggregationMode}</div>
         ${partialNote}
         ${filledNote}
       `;
