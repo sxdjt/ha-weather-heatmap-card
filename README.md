@@ -20,7 +20,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Navigation between time periods (previous/next/current)
 - Interactive Avg/Min/Max toggle button in the header for all card types - switches display mode instantly without refetching data
 - Min/Max/Avg statistics footer with legend bar
-- Compact mode and cell sizing customization
+- Cell sizing customization and a compact header
 - Tooltip on cell click
 
 **Temperature mode** (`card_type: temperature`):
@@ -139,7 +139,6 @@ entity: sensor.wind_speed
 | `click_action` | string | `"more-info"` | Cell click: `"more-info"`, `"tooltip"`, or `"none"` |
 | `color_interpolation` | string | `"hsl"` | Interpolation method: `"rgb"`, `"gamma"`, `"hsl"`, or `"lab"` |
 | `color_thresholds` | array | See below | Custom color mapping |
-| `compact` | boolean | `false` | Compact preset (overrides cell sizing) |
 | `compact_header` | boolean | `false` | Reduce header/footer padding and nav size |
 | `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"`. `auto` currently always uses long-term statistics (hourly), so the entity needs a `state_class`; use `history` for sensors without one |
 | `days` | number | `7` | Number of days to display (1-365) |

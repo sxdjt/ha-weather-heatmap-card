@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Removed
+
+- `compact`: it has done nothing since 2026.5 (the sizing override was removed because it ignored the configured cell sizes), so it is removed from the editor and the docs. Configs that still set it keep working; the key is ignored. Use the cell size options and `compact_header`.
+
 ### Added
 
 - `show_title` (and a Show Title switch in the editor) hides the header title. An empty `title` could not, because it falls back to the default title.

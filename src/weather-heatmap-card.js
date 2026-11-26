@@ -247,7 +247,6 @@ export class SensorHeatmapCard extends HTMLElement {
       cell_padding: config.cell_padding !== undefined ? config.cell_padding : 2,
       cell_gap: config.cell_gap !== undefined ? config.cell_gap : 2,
       cell_font_size: config.cell_font_size !== undefined ? config.cell_font_size : 11,
-      compact: config.compact || false,
       compact_header: config.compact_header || false,
 
       // Visual options

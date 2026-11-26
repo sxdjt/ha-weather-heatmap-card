@@ -84,11 +84,12 @@ describe('review sweep findings', () => {
     assert.equal(card._activeAggregationMode, 'average');
   });
 
-  // W14 (B3): README: "Compact preset (overrides cell sizing)"
-  it('compact: true reduces cell sizing', { todo: 'config.compact is stored but never applied' }, () => {
+  // W14 (B3): compact did nothing since 2919098; removed
+  it('a config that still sets compact loads; the option is gone', () => {
     const card = document.createElement('ha-weather-heatmap-card');
     card.setConfig({ entity: 'sensor.t', compact: true });
-    assert.notEqual(card._getEffectiveSizing().cellHeight, '36px');
+    assert.equal('compact' in card._config, false);
+    assert.equal(card._getEffectiveSizing().cellHeight, '36px');
   });
 
   // W13 (B7/B8): the Min/Max toggle on statistics data uses the hourly means
