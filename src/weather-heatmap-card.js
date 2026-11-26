@@ -433,7 +433,13 @@ export class SensorHeatmapCard extends HTMLElement {
 
   // Fetch historical data from Home Assistant
   async _fetchHistoryData() {
-    if (this._isLoading) return;
+    // One fetch at a time. A request made meanwhile (paging, a saved edit, the timer)
+    // runs when the current one ends, and that one's answer is not drawn: it is for
+    // the window or config the card has just left.
+    if (this._isLoading) {
+      this._refetchPending = true;
+      return;
+    }
 
     this._isLoading = true;
     this._error = null;
@@ -486,20 +492,30 @@ export class SensorHeatmapCard extends HTMLElement {
         this._forecastHourly = null;
       }
 
+      this._isLoading = false;
+      if (this._runPendingFetch()) return;
       this._lastFetch = Date.now();
       this._processData();
-      this._isLoading = false;
       this._render();
 
     } catch (error) {
-      console.error('Weather Heatmap: Fetch error:', error);
       this._isLoading = false;
+      if (this._runPendingFetch()) return;
+      console.error('Weather Heatmap: Fetch error:', error);
       this._error = {
         message: `Failed to fetch ${isWind ? 'wind speed' : this._valueLabel().toLowerCase()} history`,
         details: error.message
       };
       this._render();
     }
+  }
+
+  // Starts the fetch requested while the last one was out; true when there was one
+  _runPendingFetch() {
+    if (!this._refetchPending) return false;
+    this._refetchPending = false;
+    this._fetchHistoryData();
+    return true;
   }
 
   // Fetch data using the history/period REST API
