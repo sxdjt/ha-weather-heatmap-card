@@ -24,7 +24,7 @@ describe('rendering', () => {
 
 describe('review sweep findings', () => {
   // W-D6 (B11): unit_of_measurement comes from the integration and is written raw
-  it('a unit_of_measurement cannot inject markup', { todo: 'unit is interpolated into footer, legend and tooltip HTML unescaped' }, async () => {
+  it('a unit_of_measurement cannot inject markup', async () => {
     quiet();
     const hass = temp({ states: { 'sensor.t': sensor(70, { unit_of_measurement: '<img src=x>' }) } });
     const card = await makeCard({ entity: 'sensor.t', days: 1, show_legend: true, click_action: 'tooltip' }, hass);
@@ -32,7 +32,7 @@ describe('review sweep findings', () => {
     assert.equal(card.shadowRoot.querySelectorAll('img').length, 0, 'unit markup was rendered');
   });
 
-  it('a forecast condition cannot add attributes', { todo: 'condition is interpolated into aria-label unescaped' }, async () => {
+  it('a forecast condition cannot add attributes', async () => {
     quiet();
     const tomorrow = new Date(Date.now() + 86400000).toISOString();
     const hass = temp({ forecast: { 'weather.home': [{ datetime: tomorrow, temperature: 70, templow: 50, condition: 'x" onfocus="alert(1)' }] } });

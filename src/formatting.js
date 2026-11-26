@@ -6,9 +6,12 @@
  * @returns {string} - HTML-escaped text
  */
 export function escapeHtml(text) {
+  if (text == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  div.textContent = String(text);
+  // div.innerHTML encodes <, > and & but not ", so quotes are encoded too and the
+  // result is safe inside double-quoted attributes (same helper as rachio-card)
+  return div.innerHTML.replace(/"/g, '&quot;');
 }
 
 /**

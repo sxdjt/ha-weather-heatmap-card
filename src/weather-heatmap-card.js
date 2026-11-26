@@ -1342,7 +1342,7 @@ export class SensorHeatmapCard extends HTMLElement {
           this._config.color_interpolation
         );
         const textColor = getContrastTextColor(bgColor);
-        styleAttr = ` style="background-color: ${bgColor}; color: ${textColor}"`;
+        styleAttr = ` style="background-color: ${escapeHtml(bgColor)}; color: ${textColor}"`;
       }
 
       const iconName = forecast.condition ? getWeatherConditionIcon(forecast.condition) : null;
@@ -1351,7 +1351,8 @@ export class SensorHeatmapCard extends HTMLElement {
         : '';
       const highStr = forecast.high !== null ? `${forecast.high.toFixed(decimals)}${degree}` : '-';
       const lowStr = forecast.low !== null ? `${forecast.low.toFixed(decimals)}${degree}` : '-';
-      const conditionLabel = forecast.condition ? ` ${forecast.condition}` : '';
+      // The condition comes from the weather integration: escape it for the attribute
+      const conditionLabel = forecast.condition ? ` ${escapeHtml(forecast.condition)}` : '';
 
       return `
         <div class="forecast-cell"
@@ -1413,7 +1414,7 @@ export class SensorHeatmapCard extends HTMLElement {
 
     return `
       <div class="${cellClass}"
-           style="background-color: ${bgColor}; color: ${textColor};${forecastStyle}"
+           style="background-color: ${escapeHtml(bgColor)}; color: ${textColor};${forecastStyle}"
            data-value="${cell.temperature}"
            data-date="${cell.date.toISOString()}"
            data-partial="${cell.isPartial ? 'true' : 'false'}"
@@ -1453,7 +1454,7 @@ export class SensorHeatmapCard extends HTMLElement {
 
     return `
       <div class="${cellClass}"
-           style="background-color: ${bgColor}; color: ${textColor}"
+           style="background-color: ${escapeHtml(bgColor)}; color: ${textColor}"
            data-value="${cell.speed}"
            data-direction="${cell.direction !== null ? cell.direction : ''}"
            data-date="${cell.date.toISOString()}"
@@ -1483,7 +1484,7 @@ export class SensorHeatmapCard extends HTMLElement {
       const denominator = Math.max(maxValue, 75);
       const gradientStops = thresholds.map(t => {
         const percent = Math.min((t.value / denominator) * 100, 100);
-        return `${t.color} ${percent.toFixed(0)}%`;
+        return `${escapeHtml(t.color)} ${percent.toFixed(0)}%`;
       }).join(', ');
 
       const MIN_LABEL_SPACING = 8;
@@ -1493,7 +1494,7 @@ export class SensorHeatmapCard extends HTMLElement {
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
         const isLast = i === thresholds.length - 1;
-        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${escapeHtml(t.value)}${isLast ? '+' : ''}</span>`;
       }).join('');
 
       return `
@@ -1515,7 +1516,7 @@ export class SensorHeatmapCard extends HTMLElement {
           const t = i / 20;
           const value = minVal + t * range;
           const color = getColorForValue(value, thresholds, true, method);
-          stops.push(`${color} ${(t * 100).toFixed(1)}%`);
+          stops.push(`${escapeHtml(color)} ${(t * 100).toFixed(1)}%`);
         }
         gradientStops = stops.join(', ');
       } else {
@@ -1523,11 +1524,11 @@ export class SensorHeatmapCard extends HTMLElement {
         for (let i = 0; i < thresholds.length; i++) {
           const current = thresholds[i];
           const pct = ((current.value - minVal) / range) * 100;
-          stops.push(`${current.color} ${pct.toFixed(1)}%`);
+          stops.push(`${escapeHtml(current.color)} ${pct.toFixed(1)}%`);
           if (i < thresholds.length - 1) {
             const next = thresholds[i + 1];
             const nextPct = ((next.value - minVal) / range) * 100;
-            stops.push(`${current.color} ${nextPct.toFixed(1)}%`);
+            stops.push(`${escapeHtml(current.color)} ${nextPct.toFixed(1)}%`);
           }
         }
         gradientStops = stops.join(', ');
@@ -1540,7 +1541,7 @@ export class SensorHeatmapCard extends HTMLElement {
         const pct = ((t.value - minVal) / range) * 100;
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
-        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${unit}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${escapeHtml(t.value)}${escapeHtml(unit)}</span>`;
       }).join('');
 
       return `
@@ -1569,17 +1570,17 @@ export class SensorHeatmapCard extends HTMLElement {
         <div class="footer-stats">
           <div class="stat">
             <span class="stat-label">Min</span>
-            <span class="stat-value">${stats.min.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.min.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
             <span class="stat-label">Max</span>
-            <span class="stat-value">${stats.max.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.max.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
             <span class="stat-label">Avg</span>
-            <span class="stat-value">${stats.avg.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.avg.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
         </div>
         ${entityName}
@@ -1722,7 +1723,7 @@ export class SensorHeatmapCard extends HTMLElement {
         : '';
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
-        <div>Speed: ${speed.toFixed(1)} ${unit}${dirText}</div>
+        <div>Speed: ${speed.toFixed(1)} ${escapeHtml(unit)}${dirText}</div>
         <div>Mode: ${this._activeAggregationMode || 'max'}</div>
         ${partialNote}
       `;
@@ -1733,7 +1734,7 @@ export class SensorHeatmapCard extends HTMLElement {
       const filledNote = isFilled ? '<div><em>(estimated - gap filled)</em></div>' : '';
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
-        <div>Temperature: ${temperature.toFixed(decimals)} ${unit}</div>
+        <div>Temperature: ${temperature.toFixed(decimals)} ${escapeHtml(unit)}</div>
         <div>Mode: ${this._activeAggregationMode || 'average'}</div>
         ${partialNote}
         ${filledNote}

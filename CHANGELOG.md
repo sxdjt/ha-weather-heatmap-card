@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- The unit of measurement (from the sensor's integration) and the weather forecast condition are escaped before they are written into the card's HTML. A unit or condition containing markup was rendered as HTML, and the escape helper did not encode `"`. Configured colors and threshold values are escaped too.
+
 ## 2026.11.12 (2026-11-12)
 
 Accessibility improvements (screen reader).
