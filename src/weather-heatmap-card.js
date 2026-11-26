@@ -457,7 +457,7 @@ export class SensorHeatmapCard extends HTMLElement {
 
     const isWind = this._config.card_type === 'windspeed';
     const dataSource = this._getDataSource();
-    console.log(`Weather Heatmap: Starting ${isWind ? 'wind' : 'temperature'} fetch using ${dataSource}...`);
+    console.log(`Weather Heatmap: Starting ${this._config.card_type} fetch using ${dataSource}...`);
 
     try {
       const now = new Date();
@@ -504,7 +504,7 @@ export class SensorHeatmapCard extends HTMLElement {
       console.error('Weather Heatmap: Fetch error:', error);
       this._isLoading = false;
       this._error = {
-        message: `Failed to fetch ${isWind ? 'wind speed' : 'temperature'} history`,
+        message: `Failed to fetch ${isWind ? 'wind speed' : this._valueLabel().toLowerCase()} history`,
         details: error.message
       };
       this._render();
@@ -1432,7 +1432,7 @@ export class SensorHeatmapCard extends HTMLElement {
            data-forecast="${cell.isForecast ? 'true' : 'false'}"
            tabindex="0"
            role="button"
-           aria-label="Temperature ${cell.temperature.toFixed(decimals)}${partialLabel}${filledLabel}${forecastLabel}">
+           aria-label="${this._valueLabel()} ${cell.temperature.toFixed(decimals)}${partialLabel}${filledLabel}${forecastLabel}">
         <span class="value">${cell.temperature.toFixed(decimals)}${partialIndicator}</span>
       </div>
     `;
@@ -1598,6 +1598,11 @@ export class SensorHeatmapCard extends HTMLElement {
     `;
   }
 
+  // What a non-wind cell measures, for labels: these card types share one code path
+  _valueLabel() {
+    return { temperature: 'Temperature', humidity: 'Humidity' }[this._config.card_type] || 'Value';
+  }
+
   // Get unit of measurement, handling degree symbol option for temperature
   _getUnit() {
     // Humidity is always percent — no auto-detection or config override needed
@@ -1747,7 +1752,7 @@ export class SensorHeatmapCard extends HTMLElement {
       const filledNote = isFilled ? '<div><em>(estimated - gap filled)</em></div>' : '';
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
-        <div>Temperature: ${temperature.toFixed(decimals)} ${escapeHtml(unit)}</div>
+        <div>${this._valueLabel()}: ${temperature.toFixed(decimals)} ${escapeHtml(unit)}</div>
         <div>Mode: ${this._activeAggregationMode || 'average'}</div>
         ${partialNote}
         ${filledNote}

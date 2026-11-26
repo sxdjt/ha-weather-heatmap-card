@@ -67,12 +67,14 @@ describe('review sweep findings', () => {
   });
 
   // W10 (B8): humidity and generic cells are not temperatures
-  it('humidity and generic cells are not labelled Temperature', { todo: "aria-label, tooltip and fetch error always say 'Temperature'" }, async () => {
+  it('humidity and generic cells are not labelled Temperature', async () => {
     quiet();
     const hass = makeHass({ states: { 'sensor.h': sensor(40) }, stats: { 'sensor.h': [statRow(3, { mean: 40 })] } });
     const card = await makeCard({ entity: 'sensor.h', card_type: 'humidity', days: 1 }, hass);
     const cell = content(card).querySelector('.data-grid .cell:not(.no-data)');
-    assert.doesNotMatch(cell.getAttribute('aria-label'), /Temperature/);
+    assert.match(cell.getAttribute('aria-label'), /^Humidity 40/);
+    const generic = await makeCard({ entity: 'sensor.h', card_type: 'generic', days: 1 }, hass);
+    assert.match(content(generic).querySelector('.data-grid .cell:not(.no-data)').getAttribute('aria-label'), /^Value 40/);
   });
 
   // W1/W12 (B8): wind ignores aggregation_mode and statistic_type
