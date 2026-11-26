@@ -15,7 +15,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Single card handles temperature, wind speed, humidity, and any numeric sensor via `card_type`
 - Visual configuration editor with context-sensitive fields
 - Color interpolation with multiple methods (RGB, HSL, LAB, Gamma)
-- Configurable time periods (1-365 days) and intervals (1-24 hours)
+- Configurable time periods (1-365 days) and intervals (1, 2, 3, 4, 6, 8, 12 or 24 hours)
 - Long-term statistics support (data beyond recorder history)
 - Navigation between time periods (previous/next/current)
 - Interactive Avg/Min/Max toggle button in the header for all card types - switches display mode instantly without refetching data
@@ -39,7 +39,7 @@ Replaces and supersedes the separate [Temperature Heatmap Card](https://github.c
 - Max/Avg/Min toggle in header (defaults to Max for peak gust display)
 
 **Humidity mode** (`card_type: humidity`):
-- Comfort-based color scale: yellow for dry (0-30%), green for comfortable (30-50%), yellow/orange/red for humid (above 55%)
+- Comfort-based color scale: blue/cyan for dry (below 45%), green for ideal (45-60%), yellow/orange/red for humid (60% and above)
 - Fixed % unit — no configuration needed
 - Shares temperature's aggregation, hour filtering, and gap filling options
 
@@ -131,17 +131,17 @@ entity: sensor.wind_speed
 | `entity` | string | **Required** | Sensor entity ID |
 | `aggregation_mode` | string | `"average"` | How history readings are combined per cell: `"average"`, `"min"`, or `"max"` |
 | `card_type` | string | `"temperature"` | Card mode: `"temperature"`, `"windspeed"`, `"humidity"`, or `"generic"` |
-| `cell_font_size` | number/string | `11` | Cell font size |
-| `cell_gap` | number/string | `2` | Gap between cells |
-| `cell_height` | number/string | `36` | Cell height in pixels |
-| `cell_padding` | number/string | `2` | Padding inside cells |
-| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.) |
+| `cell_font_size` | number/string | `11` | Cell font size in pixels (6-24) |
+| `cell_gap` | number/string | `2` | Gap between cells in pixels (0-20) |
+| `cell_height` | number/string | `36` | Cell height in pixels (10-200) |
+| `cell_padding` | number/string | `2` | Padding inside cells in pixels (0-20) |
+| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.); a number is pixels (10-500) |
 | `click_action` | string | `"more-info"` | Cell click: `"more-info"`, `"tooltip"`, or `"none"` |
 | `color_interpolation` | string | `"hsl"` | Interpolation method: `"rgb"`, `"gamma"`, `"hsl"`, or `"lab"` |
 | `color_thresholds` | array | See below | Custom color mapping |
 | `compact` | boolean | `false` | Compact preset (overrides cell sizing) |
 | `compact_header` | boolean | `false` | Reduce header/footer padding and nav size |
-| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"` |
+| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"`. `auto` currently always uses long-term statistics (hourly), so the entity needs a `state_class`; use `history` for sensors without one |
 | `days` | number | `7` | Number of days to display (1-365) |
 | `fill_gaps` | boolean | `false` | Forward-fill last known value into empty past cells. **NOTE:** displays carried-forward data where none exists — use with care |
 | `fill_gaps_style` | string | `"dimmed"` | How filled cells appear: `"dimmed"` (reduced opacity + dashed border) or `"none"` (same as real data). Tooltips always label estimated values. |
@@ -154,8 +154,8 @@ entity: sensor.wind_speed
 | `show_month_year` | boolean | `true` | Show month/year label above the grid |
 | `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |
 | `time_format` | string | `"24"` | Time format: `"12"` or `"24"` |
-| `time_interval` | number | `2` | Hours per row (1-24) |
-| `title` | string | | Card title |
+| `time_interval` | number | `2` | Hours per row: 1, 2, 3, 4, 6, 8, 12 or 24 |
+| `title` | string | per type | Card title. Defaults to "Temperature History", "Wind Speed History", "Humidity History" or "Sensor History" |
 
 ### Temperature and Humidity Options
 
@@ -239,13 +239,13 @@ color_thresholds:
 
 ```yaml
 color_thresholds:
-  - { value: 0,  color: "#fff176" }  # Very dry
-  - { value: 15, color: "#ffee58" }  # Dry
-  - { value: 30, color: "#4caf50" }  # Comfortable low
-  - { value: 45, color: "#81c784" }  # Comfortable
-  - { value: 55, color: "#ffeb3b" }  # Getting humid
-  - { value: 65, color: "#ff9800" }  # Humid
-  - { value: 80, color: "#f44336" }  # Very humid
+  - { value: 0,  color: "#1565c0" }  # Very dry
+  - { value: 20, color: "#42a5f5" }  # Dry
+  - { value: 30, color: "#80deea" }  # Slightly dry
+  - { value: 45, color: "#4caf50" }  # Ideal
+  - { value: 60, color: "#ffeb3b" }  # Slightly humid
+  - { value: 70, color: "#ff9800" }  # Humid
+  - { value: 85, color: "#f44336" }  # Very humid
 ```
 
 ### Wind Speed - Beaufort Scale
@@ -256,7 +256,7 @@ Thresholds are automatically selected based on the detected unit (mph, km/h, m/s
 
 Two independent settings control how data is summarized:
 
-**Aggregation Mode** (`aggregation_mode`): How raw sensor readings within a single time cell are combined when using history API data. For example, with a 2-hour cell and `average`, all readings from 14:00-15:59 are averaged together. The `aggregation_mode` option sets the initial mode; you can also toggle it on the fly using the **Avg/Min/Max button** in the card header (all card types). Wind cards default to Max (peak gust) and cycle Max/Avg/Min. The button fills with the accent color when a non-default mode is active.
+**Aggregation Mode** (`aggregation_mode`): How raw sensor readings within a single time cell are combined when using history API data. For example, with a 2-hour cell and `average`, all readings from 14:00-15:59 are averaged together. The `aggregation_mode` option sets the initial mode; you can also toggle it on the fly using the **Avg/Min/Max button** in the card header (all card types). Wind cards default to Max (peak gust) and cycle Max/Avg/Min. The button label shows the current mode.
 
 **Statistic Type** (`statistic_type`): Which pre-computed value to fetch when using long-term statistics (data older than your recorder's `purge_keep_days`). Home Assistant records hourly mean, min, and max for statistics-enabled entities.
 
