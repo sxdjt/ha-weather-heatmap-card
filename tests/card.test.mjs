@@ -78,10 +78,19 @@ describe('review sweep findings', () => {
   });
 
   // W1/W12 (B8): wind ignores aggregation_mode and statistic_type
-  it('a wind card starts in the configured mode', { todo: 'wind always starts at max; aggregation_mode and statistic_type are ignored' }, () => {
+  it('a wind card starts in the configured mode', () => {
     const card = document.createElement('ha-weather-heatmap-card');
     card.setConfig({ entity: 'sensor.w', card_type: 'windspeed', aggregation_mode: 'average' });
     assert.equal(card._activeAggregationMode, 'average');
+  });
+
+  it('starting mode: statistic_type when aggregation_mode is unset, else the type default', () => {
+    const mode = (config) => { const c = document.createElement('ha-weather-heatmap-card'); c.setConfig({ entity: 'sensor.x', ...config }); return c._activeAggregationMode; };
+    assert.deepEqual(
+      [mode({ statistic_type: 'max' }), mode({ statistic_type: 'mean', card_type: 'windspeed' }), mode({ card_type: 'windspeed' }), mode({}), mode({ aggregation_mode: 'min', statistic_type: 'max' })],
+      ['max', 'average', 'max', 'average', 'min'],
+    );
+    assert.throws(() => mode({ card_type: 'windspeed', aggregation_mode: 'median' }), /aggregation_mode must be one of/);
   });
 
   // W14 (B3): compact did nothing since 2919098; removed
@@ -93,13 +102,16 @@ describe('review sweep findings', () => {
   });
 
   // W13 (B7/B8): the Min/Max toggle on statistics data uses the hourly means
-  it('Min and Max on statistics data use the hourly min and max', { todo: 'only statistic_type (mean) is stored, so Min/Max pick among means' }, async () => {
+  it('Min and Max on statistics data use the hourly min and max', async () => {
     quiet();
     const card = await makeCard({ entity: 'sensor.t', days: 1, time_interval: 1 }, temp());
     card._activeAggregationMode = 'max';
     card._processData();
     const values = card._processedData.rows.flatMap((r) => r.cells).filter((c) => c.hasData && !c.isPartial).map((c) => c.temperature);
     assert.deepEqual(values, [72]);
+    card._activeAggregationMode = 'min';
+    card._processData();
+    assert.deepEqual(card._processedData.rows.flatMap((r) => r.cells).filter((c) => c.hasData && !c.isPartial).map((c) => c.temperature), [60]);
   });
 
   // W2 (B8): editor label promises history for current data; a sensor without

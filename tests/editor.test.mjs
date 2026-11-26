@@ -34,7 +34,10 @@ describe('review sweep findings', () => {
     assert.equal(field(humidity, 'decimals').value, 0);
     assert.equal(field(humidity, 'show_month_year').checked, true);
     const wind = await makeEditor({ entity: 'sensor.w', card_type: 'windspeed' });
-    assert.equal(field(wind, 'statistic_type_wind').value, 'max');
+    assert.equal(field(wind, 'aggregation_mode').value, 'max');
+    const legacy = await makeEditor({ entity: 'sensor.t', statistic_type: 'min' });
+    assert.equal(field(legacy, 'aggregation_mode').value, 'min');
+    assert.equal('statistic_type_temp' in legacy.fields, false);
     assert.equal(field(wind, 'decimals').value, 1);
   });
 

@@ -10,6 +10,11 @@
 
 - `show_title` (and a Show Title switch in the editor) hides the header title. An empty `title` could not, because it falls back to the default title.
 
+### Changed
+
+- Avg/Min/Max now means the same on every card type. On temperature, humidity and generic cards using long-term statistics (the default), Min and Max picked the lowest or highest hourly average, so with a 1-hour interval all three modes showed the same value; they now use the real hourly minimum and maximum, as wind cards already did.
+- `aggregation_mode` sets the starting mode on wind cards too (they always started on Max). `statistic_type` is superseded: when `aggregation_mode` is not set it still picks the starting mode, so existing configs keep their behavior. The editor shows Aggregation Mode for every card type and no longer has the Statistic Type field.
+
 ### Fixed
 
 - Visual editor: only the options you change are saved. The editor wrote every default into the config, so a humidity card edited in the editor got 1 decimal (its default is 0) and a wind card got `statistic_type: mean`.

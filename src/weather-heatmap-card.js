@@ -145,12 +145,14 @@ export class SensorHeatmapCard extends HTMLElement {
       throw new Error('decimals must be between 0 and 2');
     }
 
+    // aggregation_mode applies to every card type (wind included)
+    const validAggregations = ['average', 'min', 'max'];
+    if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
+      throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
+    }
+
     // Temperature, humidity, and generic share the same validation rules
     if (card_type === 'temperature' || card_type === 'humidity' || card_type === 'generic') {
-      const validAggregations = ['average', 'min', 'max'];
-      if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
-        throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
-      }
       if (config.start_hour !== undefined && (!Number.isInteger(config.start_hour) || config.start_hour < 0 || config.start_hour > 23)) {
         throw new Error('start_hour must be an integer between 0 and 23');
       }
@@ -297,13 +299,12 @@ export class SensorHeatmapCard extends HTMLElement {
     // Sort thresholds ascending
     this._config.color_thresholds = [...this._config.color_thresholds].sort((a, b) => a.value - b.value);
 
-    // Initialize active aggregation mode from config.
-    // Wind defaults to 'max' (peak gust); other types default to 'average'.
-    if (card_type === 'windspeed') {
-      this._activeAggregationMode = 'max';
-    } else {
-      this._activeAggregationMode = config.aggregation_mode || 'average';
-    }
+    // Initial Avg/Min/Max mode, the same rule for every card type: aggregation_mode,
+    // else the older statistic_type (mean -> average), else max for wind (peak gust)
+    // and average for the rest. Wind used to ignore both options.
+    this._activeAggregationMode = config.aggregation_mode
+      || { mean: 'average', min: 'min', max: 'max' }[config.statistic_type]
+      || (card_type === 'windspeed' ? 'max' : 'average');
 
     if (this._hass) {
       this._clearAndSetInterval();
@@ -562,8 +563,6 @@ export class SensorHeatmapCard extends HTMLElement {
       })
     );
 
-    const statisticType = this._config.statistic_type;
-
     if (isWind) {
       const speedStats = statsResult[this._config.entity] || [];
       const directionStats = this._config.direction_entity
@@ -589,11 +588,16 @@ export class SensorHeatmapCard extends HTMLElement {
         startTime, endTime, partialBucketKey, dataSource: 'statistics'
       };
     } else {
+      // Keep all three HA pre-computed stats per hourly bucket (as for wind), so the
+      // Min/Max toggle shows the real hourly min/max rather than the min/max of the
+      // hourly means
       const tempStats = statsResult[this._config.entity] || [];
       const tempData = tempStats.map(stat => ({
         last_changed: stat.start,
-        state: String(stat[statisticType] ?? stat.mean ?? ''),
-      })).filter(p => p.state !== '' && p.state !== 'null');
+        mean: stat.mean ?? null,
+        max: stat.max ?? null,
+        min: stat.min ?? null,
+      })).filter(p => p.mean !== null || p.max !== null || p.min !== null);
 
       this._historyData = {
         temperature: tempData,
@@ -739,9 +743,13 @@ export class SensorHeatmapCard extends HTMLElement {
   }
 
   _processTemperatureData() {
-    const { temperature, startTime, partialBucketKey } = this._historyData;
+    const { temperature, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
+    const activeMode = this._activeAggregationMode || 'average';
+    // Statistics rows carry mean/min/max: read the field for the active mode
+    const statField = { average: 'mean', max: 'max', min: 'min' }[activeMode] || 'mean';
+    const isStatistics = dataSource === 'statistics';
 
     // Build grid using running statistics (O(1) memory per bucket)
     const grid = {};
@@ -754,7 +762,9 @@ export class SensorHeatmapCard extends HTMLElement {
 
       if (!grid[key]) grid[key] = { sum: 0, count: 0, min: null, max: null };
 
-      const value = parseFloat(point.state);
+      const value = isStatistics
+        ? parseFloat(point[statField] ?? point.mean ?? '')
+        : parseFloat(point.state);
       if (!isNaN(value)) {
         grid[key].sum += value;
         grid[key].count += 1;
@@ -768,7 +778,7 @@ export class SensorHeatmapCard extends HTMLElement {
     Object.keys(grid).forEach(key => {
       const bucket = grid[key];
       if (bucket.count > 0) {
-        switch (this._activeAggregationMode || 'average') {
+        switch (activeMode) {
           case 'min': bucket.temperature = bucket.min; break;
           case 'max': bucket.temperature = bucket.max; break;
           default:    bucket.temperature = bucket.sum / bucket.count; break;

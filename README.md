@@ -129,7 +129,7 @@ entity: sensor.wind_speed
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `entity` | string | **Required** | Sensor entity ID |
-| `aggregation_mode` | string | `"average"` | How history readings are combined per cell: `"average"`, `"min"`, or `"max"` |
+| `aggregation_mode` | string | `"average"` (`"max"` for wind) | What each cell shows: the `"average"`, `"min"` or `"max"` of the readings in its interval. The starting mode; the header button switches it |
 | `card_type` | string | `"temperature"` | Card mode: `"temperature"`, `"windspeed"`, `"humidity"`, or `"generic"` |
 | `cell_font_size` | number/string | `11` | Cell font size in pixels (6-24) |
 | `cell_gap` | number/string | `2` | Gap between cells in pixels (0-20) |
@@ -152,7 +152,7 @@ entity: sensor.wind_speed
 | `show_legend` | boolean | `false` | Show color legend bar |
 | `show_month_year` | boolean | `true` | Show month/year label above the grid |
 | `show_title` | boolean | `true` | Show the title in the header. An empty `title` keeps the default title; use `show_title: false` to hide it |
-| `statistic_type` | string | `"mean"` (temp) / `"max"` (wind) | Pre-computed statistic from long-term data: `"mean"`, `"min"`, or `"max"` |
+| `statistic_type` | string | - | Older option, superseded by `aggregation_mode`. When `aggregation_mode` is not set, it picks the starting mode (`"mean"` = average, `"min"`, `"max"`) |
 | `time_format` | string | `"24"` | Time format: `"12"` or `"24"` |
 | `time_interval` | number | `2` | Hours per row: 1, 2, 3, 4, 6, 8, 12 or 24 |
 | `title` | string | per type | Card title. Defaults to "Temperature History", "Wind Speed History", "Humidity History" or "Sensor History" |
@@ -254,11 +254,9 @@ Thresholds are automatically selected based on the detected unit (mph, km/h, m/s
 
 ## Data Aggregation
 
-Two independent settings control how data is summarized:
+**Aggregation Mode** (`aggregation_mode`): what each cell shows, the average, minimum or maximum of the readings in its time interval. From long-term statistics (the default data source) that is the hourly mean, min or max that Home Assistant records; from history, the raw readings. With a 2-hour cell and `max`, the cell shows the highest value from 14:00-15:59. `aggregation_mode` sets the starting mode for every card type (default `average`, and `max` for wind, the peak gust); the **Avg/Min/Max button** in the card header switches it without refetching. Wind cards cycle Max/Avg/Min. The button label shows the current mode.
 
-**Aggregation Mode** (`aggregation_mode`): How raw sensor readings within a single time cell are combined when using history API data. For example, with a 2-hour cell and `average`, all readings from 14:00-15:59 are averaged together. The `aggregation_mode` option sets the initial mode; you can also toggle it on the fly using the **Avg/Min/Max button** in the card header (all card types). Wind cards default to Max (peak gust) and cycle Max/Avg/Min. The button label shows the current mode.
-
-**Statistic Type** (`statistic_type`): Which pre-computed value to fetch when using long-term statistics (data older than your recorder's `purge_keep_days`). Home Assistant records hourly mean, min, and max for statistics-enabled entities.
+**Statistic Type** (`statistic_type`): an older option that `aggregation_mode` replaces. When `aggregation_mode` is not set, `statistic_type` picks the starting mode, so existing configs keep their behavior.
 
 ## Color Interpolation
 

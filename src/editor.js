@@ -70,7 +70,6 @@ const EDITOR_DEFAULTS = {
   data_source: 'auto',
   start_hour: 0,
   end_hour: 23,
-  aggregation_mode: 'average',
   unit: '',
   show_degree_symbol: true,
   fill_gaps: false,
@@ -163,8 +162,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
     //           'temperature' = only shown when card_type is 'temperature'
     //           'windspeed'   = only shown when card_type is 'windspeed'
     //
-    // Virtual keys 'unit_temp' / 'unit_wind' and 'statistic_type_temp' / 'statistic_type_wind'
-    // both write to 'unit' and 'statistic_type' in the config respectively.
+    // Virtual keys 'unit_temp' / 'unit_wind' / 'unit_generic' all write to 'unit' in the config.
     // This lets us show different option sets for the same config key per card type.
     const fields = [
       // Card type selector - always visible, drives field visibility
@@ -190,18 +188,12 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       // Data aggregation section - prominent placement since these affect what values are shown
       { type: 'section', key: 'section_aggregation', label: 'Data Aggregation',
         options: { description:
-          'Aggregation Mode: how multiple raw sensor readings within a single time cell are combined ' +
-          '(average, min, or max of all history readings in that interval). ' +
-          'Statistic Type: which pre-computed value to pull when fetching long-term statistics ' +
-          '(HA records mean, max, and min per hour — used when data is older than your recorder history).'
+          'Aggregation Mode: what each cell shows - the average, minimum or maximum of the readings ' +
+          'in its time interval (from long-term statistics, the hourly mean, min or max). ' +
+          'This is the starting mode; the Avg/Min/Max button in the card header switches it.'
         } },
       { type: 'select', key: 'aggregation_mode', label: 'Aggregation Mode',
-        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity', 'generic'] },
-      // Virtual keys: both write to 'statistic_type' in config with different option sets per card type
-      { type: 'select', key: 'statistic_type_temp', label: 'Statistic Type',
-        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity', 'generic'] },
-      { type: 'select', key: 'statistic_type_wind', label: 'Statistic Type',
-        options: { 'max': 'Maximum', 'mean': 'Average (mean)', 'min': 'Minimum' }, showWhen: 'windspeed' },
+        options: { average: 'Average', min: 'Min', max: 'Max' } },
 
       { type: 'number', key: 'refresh_interval', label: 'Refresh Interval (s)', min: 10, max: 3600 },
       { type: 'select', key: 'click_action', label: 'Click Action',
@@ -436,7 +428,6 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
     // Virtual key mapping: all variants write to the same real config key
     if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
-    if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
     const updated = { ...this._config, [configKey]: value };
     if (value === undefined) delete updated[configKey];
@@ -478,8 +469,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
       // Map virtual keys to the real config key for reading
       let configKey = key;
       if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
-      if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
-
+  
       const value = this._config[configKey] ?? this._defaultFor(configKey);
 
       if (field.type === 'switch') {
@@ -496,7 +486,11 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   _defaultFor(key) {
     const cardType = this._config.card_type || 'temperature';
     if (key === 'decimals') return cardType === 'humidity' ? 0 : 1;
-    if (key === 'statistic_type') return cardType === 'windspeed' ? 'max' : 'mean';
+    // The card's starting mode: statistic_type (older option) when set, else max for wind
+    if (key === 'aggregation_mode') {
+      return { mean: 'average', min: 'min', max: 'max' }[this._config.statistic_type]
+        || (cardType === 'windspeed' ? 'max' : 'average');
+    }
     return EDITOR_DEFAULTS[key];
   }
 
