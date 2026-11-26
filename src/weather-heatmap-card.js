@@ -225,8 +225,9 @@ export class SensorHeatmapCard extends HTMLElement {
       // Unit (null = auto-detect from entity attributes)
       unit: config.unit || null,
 
-      // Refresh
-      refresh_interval: config.refresh_interval || 300,
+      // Refresh. setInterval treats a negative, NaN or tiny delay as 0, which re-fetched
+      // continuously; the editor's minimum is 10 s, invalid values use the 300 s default.
+      refresh_interval: this._validRefreshInterval(config.refresh_interval),
 
       // Interaction
       click_action: config.click_action || 'more-info',
@@ -307,6 +308,12 @@ export class SensorHeatmapCard extends HTMLElement {
     if (this._hass) {
       this._clearAndSetInterval();
     }
+  }
+
+  _validRefreshInterval(value) {
+    const seconds = Number(value);
+    if (value === undefined || value === null || value === '' || !Number.isFinite(seconds) || seconds <= 0) return 300;
+    return Math.max(10, seconds);
   }
 
   // Get default thresholds at config time (unit may not be known yet for wind)

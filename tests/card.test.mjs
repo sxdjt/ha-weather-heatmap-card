@@ -41,7 +41,7 @@ describe('review sweep findings', () => {
   });
 
   // W4 (B5): refresh_interval 0/negative/invalid polls without delay
-  it('an invalid refresh_interval does not poll continuously', { todo: 'refresh_interval is not validated; -1 or 0.01 polls as fast as setInterval allows' }, () => {
+  it('an invalid refresh_interval does not poll continuously', () => {
     for (const refresh_interval of [-1, 0.01, 'abc']) {
       const card = document.createElement('ha-weather-heatmap-card');
       card.setConfig({ entity: 'sensor.t', refresh_interval });

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- A `refresh_interval` that is negative, not a number, or tiny no longer re-fetches continuously. Invalid values use the 300-second default; values below 10 seconds (the editor's minimum) use 10.
+
 ### Security
 
 - The unit of measurement (from the sensor's integration) and the weather forecast condition are escaped before they are written into the card's HTML. A unit or condition containing markup was rendered as HTML, and the escape helper did not encode `"`. Configured colors and threshold values are escaped too.
