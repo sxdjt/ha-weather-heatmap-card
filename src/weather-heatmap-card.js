@@ -377,18 +377,15 @@ export class SensorHeatmapCard extends HTMLElement {
   }
 
   // Home Assistant grid layout options (HA 2024.x+); suppresses the resize warning
-  // and enables proper full-width / custom-size support in the Layout tab
+  // and enables proper full-width / custom-size support in the Layout tab.
+  // rows: 'auto' makes the card exactly as tall as its content. The row estimate used
+  // above for masonry missed a wrapped title, the month label, the date row and the
+  // footer, so the card below drew over this one (guide D7; same fix as heatmap #19)
   getGridOptions() {
-    const rows = this._processedData ? this._processedData.rows.length : 12;
-    const sizing = this._getEffectiveSizing();
-    const cellHeightPx = parseFloat(sizing.cellHeight);  // setConfig validated it (10-200)
-    const forecastPx = this._showForecastRow() ? cellHeightPx : 0;
-    const gridRows = Math.ceil((rows * cellHeightPx + forecastPx + 100) / 50);
     return {
       columns: 12,
-      rows: gridRows,
+      rows: 'auto',
       min_columns: 6,
-      min_rows: 4,
     };
   }
 

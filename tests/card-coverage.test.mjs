@@ -81,10 +81,8 @@ describe('card picker, sizing and lifecycle', () => {
     const card = newCard();
     card.setConfig({ entity: T });
     assert.equal(card.getCardSize(), Math.ceil((12 * 36 + 100) / 50));
-    assert.equal(card.getGridOptions().rows, Math.ceil((12 * 36 + 100) / 50));
     const withForecast = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home', cell_height: 40 }, tempHass());
     assert.equal(withForecast.getCardSize(), Math.ceil((12 * 40 + 40 + 100) / 50));
-    assert.equal(withForecast.getGridOptions().rows, withForecast.getCardSize());
   });
 
   it('hass before connecting does nothing; connecting starts the fetch; disconnecting stops polling', async () => {
@@ -580,5 +578,18 @@ describe('remaining branches', () => {
     card._render();
     assert.ok(card.shadowRoot.activeElement?.classList.contains('forecast-cell'));
     assert.equal(card.shadowRoot.activeElement?.dataset.date, date);
+  });
+});
+
+// Guide D7 (2026-11-26, found on the ha-test Variety page): the card must stay inside its slot
+describe('layout stays inside the card (D7)', () => {
+  it('the sections view sizes the card to its content, not a row estimate', () => {
+    // The estimate (rows x cell height + 100px) missed a wrapped title, the month label,
+    // the date row and the footer, so the card below drew over this one
+    const card = newCard();
+    card.setConfig({ entity: T });
+    assert.equal(card.getGridOptions().rows, 'auto');
+    assert.equal(card.getGridOptions().columns, 12);
+    assert.equal(card.getCardSize(), Math.ceil((12 * 36 + 100) / 50), 'masonry still gets the estimate');
   });
 });
