@@ -207,3 +207,42 @@ describe('interpolateColor', () => {
     assert.equal(interpolateColor('notacolor', '#ffffff', 0.5, 'rgb'), 'notacolor');
   });
 });
+
+// Branch coverage for the color-space math (review sweep, step 6)
+import { rgbToHsl, hslToRgb, interpolateHSL, labToRgb, rgbToLab } from '../src/color-utils.js';
+
+const rgbOf = (str) => str.match(/\d+/g).slice(0, 3).map(Number);
+
+describe('color-space branches', () => {
+  it('rgbToHsl: light colors and red hues with blue above green', () => {
+    const { h, s: sat, l } = rgbToHsl({ r: 255, g: 200, b: 220 });
+    assert.ok(l > 0.5 && sat > 0 && h > 300);
+  });
+
+  it('hslToRgb covers every 60-degree sector', () => {
+    const at = (h) => { const c = hslToRgb({ h, s: 1, l: 0.5 }); return [c.r, c.g, c.b].map(Math.round); };
+    assert.deepEqual([at(90), at(210)], [[128, 255, 0], [0, 128, 255]]);
+  });
+
+  it('interpolateHSL takes the short way round and wraps the hue', () => {
+    const [r1, , b1] = rgbOf(interpolateHSL({ r: 255, g: 0, b: 64 }, { r: 255, g: 64, b: 0 }, 0.5));
+    assert.ok(r1 > 200 && b1 < 64);
+    const [r2] = rgbOf(interpolateHSL({ r: 255, g: 64, b: 0 }, { r: 255, g: 0, b: 64 }, 0.9));
+    assert.ok(r2 > 200);
+  });
+
+  it('labToRgb handles very dark colors (linear segments)', () => {
+    const black = labToRgb(rgbToLab({ r: 1, g: 1, b: 1 }));
+    assert.deepEqual([black.r, black.g, black.b].map(Math.round), [1, 1, 1]);
+    const dark = labToRgb({ L: 1, a: 0, b: 0 });
+    assert.ok(dark.r <= 5);
+  });
+
+  it('an unknown interpolation method uses HSL; a NaN value gets the top color; no thresholds give the neutral fill', () => {
+    assert.equal(interpolateColor('#ff0000', '#0000ff', 0.5, 'bogus'), interpolateColor('#ff0000', '#0000ff', 0.5, 'hsl'));
+    const t = [{ value: 0, color: '#000000' }, { value: 10, color: '#ffffff' }];
+    assert.equal(getColorForValue(NaN, t, true), '#ffffff');
+    assert.equal(getColorForValue(5, []), 'var(--secondary-background-color, #e0e0e0)');
+    assert.equal(getColorForValue(5, undefined), 'var(--secondary-background-color, #e0e0e0)');
+  });
+});
