@@ -1615,6 +1615,9 @@ export class SensorHeatmapCard extends HTMLElement {
 
       if (this._config.card_type === 'windspeed') {
         unit = detected || 'mph';
+      } else if (this._config.card_type === 'generic') {
+        // A generic sensor has no natural unit; show none rather than guessing
+        unit = detected || '';
       } else {
         unit = detected || '°F';
       }

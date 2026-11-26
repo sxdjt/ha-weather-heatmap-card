@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- A generic card whose sensor has no unit shows no unit. It showed °F.
 - A `refresh_interval` that is negative, not a number, or tiny no longer re-fetches continuously. Invalid values use the 300-second default; values below 10 seconds (the editor's minimum) use 10.
 
 ### Security

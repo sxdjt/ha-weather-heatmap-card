@@ -59,7 +59,7 @@ describe('review sweep findings', () => {
   });
 
   // W9 (B8): generic sensors have no default unit
-  it('a generic card without a unit shows no unit', { todo: "_getUnit falls back to '°F' for every non-wind type" }, async () => {
+  it('a generic card without a unit shows no unit', async () => {
     quiet();
     const hass = makeHass({ states: { 'sensor.co2': sensor(500) }, stats: { 'sensor.co2': [statRow(3, { mean: 500 })] } });
     const card = await makeCard({ entity: 'sensor.co2', card_type: 'generic', days: 1 }, hass);
