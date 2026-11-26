@@ -553,7 +553,13 @@ describe('remaining branches', () => {
     quiet();
     const tomorrow = new Date(Date.now() + 86400000);
     tomorrow.setHours(12, 0, 0, 0);
-    const hass = tempHass({ forecast: { 'weather.home': [{ datetime: tomorrow.toISOString(), temperature: 70, templow: null, condition: 'rainy' }] } });
+    // Two readings today with a gap between them, at fixed hours: rows relative to now
+    // left no gap inside today at some times of day, and the test failed then
+    const at = (hour, mean) => { const d = new Date(); d.setHours(hour, 0, 0, 0); return { start: d.toISOString(), mean, min: mean, max: mean }; };
+    const hass = tempHass({
+      stats: { [T]: [at(6, 60), at(9, 66)] },
+      forecast: { 'weather.home': [{ datetime: tomorrow.toISOString(), temperature: 70, templow: null, condition: 'rainy' }] },
+    });
     const card = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home', show_degree_symbol: false, fill_gaps: true }, hass);
     const cell = [...card.shadowRoot.querySelectorAll('.forecast-row .forecast-cell')].find((c) => !c.classList.contains('empty'));
     assert.match(cell.getAttribute('aria-label'), /high 70.0, low -/);
