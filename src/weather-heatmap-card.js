@@ -393,6 +393,12 @@ export class SensorHeatmapCard extends HTMLElement {
     if (this._config && this._hass) {
       this._clearAndSetInterval();
     }
+    // Columns shrink to fit the card; a resize can make them too narrow (or wide enough
+    // again) for their numbers. Guarded: the test environment has no ResizeObserver
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => this._updateValueFit());
+      this._resizeObserver.observe(this);
+    }
   }
 
   disconnectedCallback() {
@@ -400,6 +406,33 @@ export class SensorHeatmapCard extends HTMLElement {
       clearInterval(this._interval);
       this._interval = null;
     }
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+  }
+
+  // Hide the numbers (keep the colors) when a column is too narrow to show them. The
+  // value stays in each cell's aria-label and tooltip. Guide D7: before this, columns
+  // could not shrink below their numbers, so a long range ran past the card and
+  // ha-card's overflow: hidden cut off the newest days
+  _updateValueFit() {
+    // No grid while loading, on an error, or before the first data
+    const grid = this._content.querySelector('.data-grid');
+    if (!grid) return;
+    const width = grid.clientWidth;
+    let hide = false;
+    // 0 = not laid out yet (hidden tab, first paint): keep the numbers
+    if (width > 0) {
+      const columns = this._processedData.dates.length;
+      const sizing = this._getEffectiveSizing();
+      const gap = parseFloat(sizing.cellGap);
+      const columnWidth = (width - gap * (columns - 1)) / columns;
+      const texts = grid.parentElement.querySelectorAll('.cell .value, .forecast-high, .forecast-low');
+      const widestChars = Math.max(0, ...[...texts].map((el) => el.textContent.trim().length));
+      // Digits are about 0.6em wide; padding on both sides
+      const needed = widestChars * parseFloat(sizing.cellFontSize) * 0.6 + 2 * parseFloat(sizing.cellPadding);
+      hide = columnWidth < needed;
+    }
+    this._content.classList.toggle('values-hidden', hide);
   }
 
   _clearAndSetInterval() {
@@ -1186,7 +1219,11 @@ export class SensorHeatmapCard extends HTMLElement {
       this._content.style.setProperty('--days-count', columnCount);
       const sizing = this._getEffectiveSizing();
       this._content.style.setProperty('--cell-height', sizing.cellHeight);
-      this._content.style.setProperty('--cell-width', sizing.cellWidth);
+      // minmax(0, ...): a column may shrink below its numbers so the grid always fits the
+      // card (_updateValueFit hides numbers that no longer fit). cell_width is the most a
+      // column takes
+      const columnTrack = `minmax(0, ${sizing.cellWidth})`;
+      this._content.style.setProperty('--cell-width', columnTrack);
       this._content.style.setProperty('--cell-padding', sizing.cellPadding);
       this._content.style.setProperty('--cell-gap', sizing.cellGap);
       this._content.style.setProperty('--cell-font-size', sizing.cellFontSize);
@@ -1201,8 +1238,9 @@ export class SensorHeatmapCard extends HTMLElement {
       if (dataGrid) {
         dataGrid.style.gap = sizing.cellGap;
         dataGrid.style.gridAutoRows = sizing.cellHeight;
-        dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${sizing.cellWidth})`;
+        dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${columnTrack})`;
       }
+      this._updateValueFit();
     }
 
     // Put focus back on the same control. A nav button can come back disabled (Next at

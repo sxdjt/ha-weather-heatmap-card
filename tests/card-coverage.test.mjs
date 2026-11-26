@@ -593,3 +593,71 @@ describe('layout stays inside the card (D7)', () => {
     assert.equal(card.getCardSize(), Math.ceil((12 * 36 + 100) / 50), 'masonry still gets the estimate');
   });
 });
+
+// D7, decided 2026-11-26 (option A): columns always fit the card; when a column is too
+// narrow for its numbers, the numbers are hidden and the colors stay (the value is still
+// in each cell's aria-label and tooltip), as heatmap-card does with its labels
+describe('narrow columns fit the card (D7)', () => {
+  const css = (card) => [...card.shadowRoot.querySelectorAll('style')].map((s) => s.textContent).join(' ').replace(/\s+/g, ' ');
+  // Every block for exactly this selector (a media query may add another), joined
+  const rule = (card, sel) => [...css(card).matchAll(new RegExp(`(?:^|[}/] )${sel.replace(/[.]/g, '\\.')} \\{[^}]*\\}`, 'g'))]
+    .map((m) => m[0]).join(' ');
+  const grid = (card) => content(card).querySelector('.data-grid');
+  const setWidth = (el, px) => Object.defineProperty(el, 'clientWidth', { configurable: true, value: px });
+
+  it('columns can shrink below their numbers instead of running past the card', async () => {
+    quiet();
+    const card = await makeCard({ entity: T, days: 14 }, tempHass());
+    assert.match(grid(card).style.gridTemplateColumns, /repeat\(14, minmax\(0(px)?, 1fr\)\)/);
+    assert.match(content(card).style.getPropertyValue('--cell-width'), /minmax\(0(px)?, 1fr\)/);
+    assert.match(rule(card, '.cell'), /min-width: 0;/);
+    assert.match(rule(card, '.cell'), /overflow: hidden;/);
+    const fixed = await makeCard({ entity: T, days: 3, cell_width: 60 }, tempHass());
+    assert.match(grid(fixed).style.gridTemplateColumns, /repeat\(3, minmax\(0(px)?, 60px\)\)/);
+  });
+
+  it('numbers hide when a column is too narrow for them, and come back when it widens', async () => {
+    quiet();
+    const card = await makeCard({ entity: T, days: 14 }, tempHass());
+    assert.match(css(card), /\.values-hidden \.cell \.value[^{]*\{ visibility: hidden; \}/);
+    setWidth(grid(card), 100);           // 14 columns of about 5px
+    card._updateValueFit();
+    assert.equal(content(card).classList.contains('values-hidden'), true);
+    setWidth(grid(card), 2000);          // about 140px each
+    card._updateValueFit();
+    assert.equal(content(card).classList.contains('values-hidden'), false);
+    setWidth(grid(card), 0);             // not laid out (hidden tab): keep the numbers
+    card._updateValueFit();
+    assert.equal(content(card).classList.contains('values-hidden'), false);
+  });
+
+  it('a resize re-checks the fit; the observer stops when the card is removed', async () => {
+    quiet();
+    const observers = [];
+    globalThis.ResizeObserver = class {
+      constructor(cb) { this.cb = cb; this.disconnected = false; observers.push(this); }
+      observe(target) { this.target = target; }
+      disconnect() { this.disconnected = true; }
+    };
+    try {
+      const card = await makeCard({ entity: T, days: 14 }, tempHass());
+      const ro = observers.at(-1);
+      assert.ok(ro, 'the card watches its size');
+      setWidth(grid(card), 100);
+      ro.cb([]);
+      assert.equal(content(card).classList.contains('values-hidden'), true);
+      card.remove();
+      assert.equal(ro.disconnected, true);
+
+      // A resize before any data (no grid yet) changes nothing
+      const empty = newCard();
+      empty.setConfig({ entity: T });
+      document.body.appendChild(empty);
+      assert.doesNotThrow(() => observers.at(-1).cb([]));
+      assert.equal(content(empty).classList.contains('values-hidden'), false);
+      empty.remove();
+    } finally {
+      delete globalThis.ResizeObserver;
+    }
+  });
+});

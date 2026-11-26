@@ -29,6 +29,7 @@
 - A generic card whose sensor has no unit shows no unit. It showed °F.
 - A `refresh_interval` that is negative, not a number, or tiny no longer re-fetches continuously. Invalid values use the 300-second default; values below 10 seconds (the editor's minimum) use 10.
 - Sections view: the card height was estimated from the number of rows and the cell height, which left out the title (more when it wraps), the month label, the date row and the footer, so the card below ran over the bottom of this one. The card is now exactly as tall as its content (it can no longer be given a fixed height in the layout tab).
+- A long date range in a narrow card (14 days at a 6-column sections width, or on a phone) was wider than the card, and the newest days were cut off at the card's edge. Columns now always fit the card; when a column gets too narrow for its numbers, the numbers are hidden and the colors stay (the value is still in the tooltip and read out by screen readers). `cell_width` is now the most a column takes.
 
 ### Security
 

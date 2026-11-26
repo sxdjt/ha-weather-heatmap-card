@@ -135,7 +135,7 @@ entity: sensor.wind_speed
 | `cell_gap` | number/string | `2` | Gap between cells in pixels (0-20) |
 | `cell_height` | number/string | `36` | Cell height in pixels (10-200) |
 | `cell_padding` | number/string | `2` | Padding inside cells in pixels (0-20) |
-| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.); a number is pixels (10-500) |
+| `cell_width` | number/string | `"1fr"` | Column width (1fr, auto, 60px, 25%, etc.); a number is pixels (10-500). This is the most a column takes: in a narrower card the columns shrink to fit, and when they get too narrow for their numbers the numbers are hidden (colors stay; the value is in the tooltip) |
 | `click_action` | string | `"more-info"` | Cell click: `"more-info"`, `"tooltip"`, or `"none"` |
 | `color_interpolation` | string | `"hsl"` | Interpolation method: `"rgb"`, `"gamma"`, `"hsl"`, or `"lab"` |
 | `color_thresholds` | array | See below | Custom color mapping |

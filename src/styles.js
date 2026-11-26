@@ -175,7 +175,7 @@ export function createStyleElement() {
     /* Date headers row */
     .date-headers {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       gap: var(--cell-gap, 2px);
     }
 
@@ -210,7 +210,7 @@ export function createStyleElement() {
     /* Data cells grid */
     .data-grid {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       grid-auto-rows: var(--cell-height, 36px);
       gap: var(--cell-gap, 2px);
     }
@@ -228,6 +228,18 @@ export function createStyleElement() {
       font-size: var(--cell-font-size, 11px);
       padding: var(--cell-padding, 2px);
       box-sizing: border-box;
+      /* Columns are minmax(0, ...) so the grid always fits the card; a cell narrower than
+         its number clips it here, and _updateValueFit hides the numbers (guide D7) */
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Columns too narrow for their numbers: colors only. The value stays in each cell's
+       aria-label and the tooltip */
+    .values-hidden .cell .value,
+    .values-hidden .forecast-high,
+    .values-hidden .forecast-low {
+      visibility: hidden;
     }
 
     /* Only apply hover effects on devices with a true hover-capable pointer.
@@ -272,7 +284,7 @@ export function createStyleElement() {
     /* Forecast row: one cell per column, aligned to the hourly data grid */
     .forecast-row {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       gap: var(--cell-gap, 2px);
     }
 
@@ -289,6 +301,8 @@ export function createStyleElement() {
       font-size: var(--cell-font-size, 11px);
       box-sizing: border-box;
       cursor: pointer;
+      min-width: 0;
+      overflow: hidden;
     }
 
     /* Empty forecast cell over historical columns - preserves column width only */
