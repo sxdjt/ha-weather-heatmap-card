@@ -59,6 +59,6 @@ describe('review sweep findings', () => {
   it('the Data Source Auto label matches the card', async () => {
     const editor = await makeEditor({ entity: 'sensor.t' });
     const auto = field(editor, 'data_source').selector.select.options.find((o) => o.value === 'auto');
-    assert.doesNotMatch(auto.label, /history for current/);
+    assert.equal(auto.label, 'Auto (statistics, or history if the sensor has none)');
   });
 });

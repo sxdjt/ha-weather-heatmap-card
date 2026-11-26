@@ -17,11 +17,12 @@
 
 ### Fixed
 
+- `data_source: auto` (the default) falls back to the recorder history when the sensor has no long-term statistics (no `state_class`). The card showed an empty grid.
 - Visual editor: only the options you change are saved. The editor wrote every default into the config, so a humidity card edited in the editor got 1 decimal (its default is 0) and a wind card got `statistic_type: mean`.
 - Visual editor: Time Interval offers only the values the card accepts (1, 2, 3, 4, 6, 8, 12, 24); typing 5 broke the card.
 - Visual editor: clearing a number field removes the option instead of saving 0, which the card rejects for Cell Height and Forecast Days.
 - Visual editor: Fill Gaps is available for wind cards (the card supports it), and Filled Cell Style (`fill_gaps_style`) has a field.
-- Visual editor: the Data Source "Auto" option is labelled as what it does (long-term statistics).
+- Visual editor: the Data Source "Auto" option is labelled as what it does (statistics, or history if the sensor has none).
 - Humidity and generic cards no longer call their values "Temperature" in cell labels (screen readers), tooltips and the fetch error message.
 - A generic card whose sensor has no unit shows no unit. It showed °F.
 - A `refresh_interval` that is negative, not a number, or tiny no longer re-fetches continuously. Invalid values use the 300-second default; values below 10 seconds (the editor's minimum) use 10.

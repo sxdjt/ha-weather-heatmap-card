@@ -424,7 +424,8 @@ export class SensorHeatmapCard extends HTMLElement {
     const source = this._config.data_source;
     if (source === 'history') return 'history';
     if (source === 'statistics') return 'statistics';
-    // Auto: always use statistics - minimum bucket is 1 hour, so pre-aggregated stats are always appropriate
+    // Auto: statistics first (minimum bucket is 1 hour, so pre-aggregated stats fit);
+    // _fetchHistoryData falls back to history when the entity has none
     return 'statistics';
   }
 
@@ -463,6 +464,13 @@ export class SensorHeatmapCard extends HTMLElement {
 
       if (dataSource === 'statistics') {
         await this._fetchStatisticsData(startTime, endTime, partialBucketKey);
+        // auto: a sensor without long-term statistics (no state_class) returns no rows;
+        // use its recorder history instead of showing an empty card
+        const primary = isWind ? this._historyData.speed : this._historyData.temperature;
+        if (this._config.data_source === 'auto' && primary.length === 0) {
+          console.log('Weather Heatmap: No statistics for this entity, falling back to history');
+          await this._fetchHistoryApiData(startTime, endTime, partialBucketKey);
+        }
       } else {
         await this._fetchHistoryApiData(startTime, endTime, partialBucketKey);
       }

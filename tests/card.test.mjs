@@ -116,12 +116,30 @@ describe('review sweep findings', () => {
 
   // W2 (B8): editor label promises history for current data; a sensor without
   // statistics (no state_class) shows an empty card with the default data_source
-  it('data_source auto falls back to history when there are no statistics', { todo: 'auto always uses statistics and never falls back' }, async () => {
+  it('data_source auto falls back to history when there are no statistics', async () => {
     quiet();
     const now = new Date(Date.now() - 3 * 3600000).toISOString();
     const hass = makeHass({ states: { 'sensor.t': sensor(70) }, history: { 'sensor.t': [{ state: '66', last_changed: now }] } });
     const card = await makeCard({ entity: 'sensor.t', days: 1 }, hass);
     assert.equal(hass.calls.api.length, 1);
     assert.ok(card._processedData.rows.flatMap((r) => r.cells).some((c) => c.temperature === 66));
+  });
+
+  it('data_source statistics never falls back; auto with statistics does not fetch history', async () => {
+    quiet();
+    const empty = makeHass({ states: { 'sensor.t': sensor(70) } });
+    await makeCard({ entity: 'sensor.t', days: 1, data_source: 'statistics' }, empty);
+    assert.equal(empty.calls.api.length, 0);
+    const hass = temp();
+    await makeCard({ entity: 'sensor.t', days: 1 }, hass);
+    assert.equal(hass.calls.api.length, 0);
+  });
+
+  it('auto falls back to history for a wind card too', async () => {
+    quiet();
+    const at = new Date(Date.now() - 3 * 3600000).toISOString();
+    const hass = makeHass({ states: { 'sensor.w': sensor(5) }, history: { 'sensor.w': [{ state: '12', last_changed: at }] } });
+    const card = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', days: 1 }, hass);
+    assert.ok(card._processedData.rows.flatMap((r) => r.cells).some((c) => c.speed === 12));
   });
 });

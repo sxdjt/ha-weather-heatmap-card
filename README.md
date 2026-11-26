@@ -140,7 +140,7 @@ entity: sensor.wind_speed
 | `color_interpolation` | string | `"hsl"` | Interpolation method: `"rgb"`, `"gamma"`, `"hsl"`, or `"lab"` |
 | `color_thresholds` | array | See below | Custom color mapping |
 | `compact_header` | boolean | `false` | Reduce header/footer padding and nav size |
-| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"`. `auto` currently always uses long-term statistics (hourly), so the entity needs a `state_class`; use `history` for sensors without one |
+| `data_source` | string | `"auto"` | `"auto"`, `"history"`, or `"statistics"`. `auto` uses long-term statistics (hourly), and the recorder history for sensors that have none (no `state_class`) |
 | `days` | number | `7` | Number of days to display (1-365) |
 | `fill_gaps` | boolean | `false` | Forward-fill last known value into empty past cells. **NOTE:** displays carried-forward data where none exists — use with care |
 | `fill_gaps_style` | string | `"dimmed"` | How filled cells appear: `"dimmed"` (reduced opacity + dashed border) or `"none"` (same as real data). Tooltips always label estimated values. |

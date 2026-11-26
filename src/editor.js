@@ -180,7 +180,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         options: { 24: '24h', 12: '12h' } },
       { type: 'select', key: 'data_source', label: 'Data Source',
         options: {
-          'auto': 'Auto (long-term statistics)',
+          'auto': 'Auto (statistics, or history if the sensor has none)',
           'history': 'History only (limited by purge_keep_days)',
           'statistics': 'Statistics only (long-term hourly data)'
         } },
