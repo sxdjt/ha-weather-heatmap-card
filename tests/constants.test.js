@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import {
   DEFAULT_THRESHOLDS_F,
   DEFAULT_THRESHOLDS_C,
@@ -29,18 +30,18 @@ describe('threshold arrays', () => {
 
   sets.forEach(([name, thresholds]) => {
     it(`${name}: is a non-empty array of {value, color} objects`, () => {
-      expect(Array.isArray(thresholds)).toBe(true);
-      expect(thresholds.length).toBeGreaterThan(0);
+      assert.equal(Array.isArray(thresholds), true);
+      assert.ok(thresholds.length > 0);
       thresholds.forEach(t => {
-        expect(typeof t.value).toBe('number');
-        expect(typeof t.color).toBe('string');
-        expect(t.color.length).toBeGreaterThan(0);
+        assert.equal(typeof t.value, 'number');
+        assert.equal(typeof t.color, 'string');
+        assert.ok(t.color.length > 0);
       });
     });
 
     it(`${name}: values are sorted in ascending order`, () => {
       for (let i = 1; i < thresholds.length; i++) {
-        expect(thresholds[i].value).toBeGreaterThan(thresholds[i - 1].value);
+        assert.ok(thresholds[i].value > thresholds[i - 1].value);
       }
     });
   });
@@ -52,35 +53,35 @@ describe('threshold arrays', () => {
 
 describe('getTemperatureThresholdsForUnit', () => {
   it('returns Fahrenheit thresholds for "F"', () => {
-    expect(getTemperatureThresholdsForUnit('F')).toEqual(DEFAULT_THRESHOLDS_F);
+    assert.deepEqual(getTemperatureThresholdsForUnit('F'), DEFAULT_THRESHOLDS_F);
   });
 
   it('returns Fahrenheit thresholds for "°F"', () => {
-    expect(getTemperatureThresholdsForUnit('°F')).toEqual(DEFAULT_THRESHOLDS_F);
+    assert.deepEqual(getTemperatureThresholdsForUnit('°F'), DEFAULT_THRESHOLDS_F);
   });
 
   it('returns Celsius thresholds for "C"', () => {
-    expect(getTemperatureThresholdsForUnit('C')).toEqual(DEFAULT_THRESHOLDS_C);
+    assert.deepEqual(getTemperatureThresholdsForUnit('C'), DEFAULT_THRESHOLDS_C);
   });
 
   it('returns Celsius thresholds for "°C"', () => {
-    expect(getTemperatureThresholdsForUnit('°C')).toEqual(DEFAULT_THRESHOLDS_C);
+    assert.deepEqual(getTemperatureThresholdsForUnit('°C'), DEFAULT_THRESHOLDS_C);
   });
 
   it('returns Celsius thresholds for "celsius"', () => {
-    expect(getTemperatureThresholdsForUnit('celsius')).toEqual(DEFAULT_THRESHOLDS_C);
+    assert.deepEqual(getTemperatureThresholdsForUnit('celsius'), DEFAULT_THRESHOLDS_C);
   });
 
   it('returns Fahrenheit thresholds for null (default)', () => {
-    expect(getTemperatureThresholdsForUnit(null)).toEqual(DEFAULT_THRESHOLDS_F);
+    assert.deepEqual(getTemperatureThresholdsForUnit(null), DEFAULT_THRESHOLDS_F);
   });
 
   it('returns Fahrenheit thresholds for undefined (default)', () => {
-    expect(getTemperatureThresholdsForUnit(undefined)).toEqual(DEFAULT_THRESHOLDS_F);
+    assert.deepEqual(getTemperatureThresholdsForUnit(undefined), DEFAULT_THRESHOLDS_F);
   });
 
   it('returns Fahrenheit thresholds for unrecognized unit', () => {
-    expect(getTemperatureThresholdsForUnit('K')).toEqual(DEFAULT_THRESHOLDS_F);
+    assert.deepEqual(getTemperatureThresholdsForUnit('K'), DEFAULT_THRESHOLDS_F);
   });
 });
 
@@ -90,55 +91,55 @@ describe('getTemperatureThresholdsForUnit', () => {
 
 describe('getWindThresholdsForUnit', () => {
   it('returns mph thresholds for "mph"', () => {
-    expect(getWindThresholdsForUnit('mph')).toEqual(DEFAULT_THRESHOLDS_MPH);
+    assert.deepEqual(getWindThresholdsForUnit('mph'), DEFAULT_THRESHOLDS_MPH);
   });
 
   it('returns m/s thresholds for "m/s"', () => {
-    expect(getWindThresholdsForUnit('m/s')).toEqual(DEFAULT_THRESHOLDS_MS);
+    assert.deepEqual(getWindThresholdsForUnit('m/s'), DEFAULT_THRESHOLDS_MS);
   });
 
   it('returns m/s thresholds for "mps"', () => {
-    expect(getWindThresholdsForUnit('mps')).toEqual(DEFAULT_THRESHOLDS_MS);
+    assert.deepEqual(getWindThresholdsForUnit('mps'), DEFAULT_THRESHOLDS_MS);
   });
 
   it('returns km/h thresholds for "km/h"', () => {
-    expect(getWindThresholdsForUnit('km/h')).toEqual(DEFAULT_THRESHOLDS_KMH);
+    assert.deepEqual(getWindThresholdsForUnit('km/h'), DEFAULT_THRESHOLDS_KMH);
   });
 
   it('returns km/h thresholds for "kph"', () => {
-    expect(getWindThresholdsForUnit('kph')).toEqual(DEFAULT_THRESHOLDS_KMH);
+    assert.deepEqual(getWindThresholdsForUnit('kph'), DEFAULT_THRESHOLDS_KMH);
   });
 
   it('returns km/h thresholds for "kmh"', () => {
-    expect(getWindThresholdsForUnit('kmh')).toEqual(DEFAULT_THRESHOLDS_KMH);
+    assert.deepEqual(getWindThresholdsForUnit('kmh'), DEFAULT_THRESHOLDS_KMH);
   });
 
   it('returns knot thresholds for "kn"', () => {
-    expect(getWindThresholdsForUnit('kn')).toEqual(DEFAULT_THRESHOLDS_KTS);
+    assert.deepEqual(getWindThresholdsForUnit('kn'), DEFAULT_THRESHOLDS_KTS);
   });
 
   it('returns knot thresholds for "kt"', () => {
-    expect(getWindThresholdsForUnit('kt')).toEqual(DEFAULT_THRESHOLDS_KTS);
+    assert.deepEqual(getWindThresholdsForUnit('kt'), DEFAULT_THRESHOLDS_KTS);
   });
 
   it('returns knot thresholds for "kts"', () => {
-    expect(getWindThresholdsForUnit('kts')).toEqual(DEFAULT_THRESHOLDS_KTS);
+    assert.deepEqual(getWindThresholdsForUnit('kts'), DEFAULT_THRESHOLDS_KTS);
   });
 
   it('returns knot thresholds for "knots"', () => {
-    expect(getWindThresholdsForUnit('knots')).toEqual(DEFAULT_THRESHOLDS_KTS);
+    assert.deepEqual(getWindThresholdsForUnit('knots'), DEFAULT_THRESHOLDS_KTS);
   });
 
   it('returns mph thresholds for null (default)', () => {
-    expect(getWindThresholdsForUnit(null)).toEqual(DEFAULT_THRESHOLDS_MPH);
+    assert.deepEqual(getWindThresholdsForUnit(null), DEFAULT_THRESHOLDS_MPH);
   });
 
   it('returns mph thresholds for undefined (default)', () => {
-    expect(getWindThresholdsForUnit(undefined)).toEqual(DEFAULT_THRESHOLDS_MPH);
+    assert.deepEqual(getWindThresholdsForUnit(undefined), DEFAULT_THRESHOLDS_MPH);
   });
 
   it('returns mph thresholds for unrecognized unit', () => {
-    expect(getWindThresholdsForUnit('furlongs')).toEqual(DEFAULT_THRESHOLDS_MPH);
+    assert.deepEqual(getWindThresholdsForUnit('furlongs'), DEFAULT_THRESHOLDS_MPH);
   });
 });
 
@@ -149,22 +150,22 @@ describe('getWindThresholdsForUnit', () => {
 describe('getWeatherConditionIcon', () => {
   it('maps every known condition to a non-empty mdi icon name', () => {
     Object.entries(WEATHER_CONDITION_ICONS).forEach(([condition, icon]) => {
-      expect(getWeatherConditionIcon(condition)).toBe(icon);
-      expect(icon).toMatch(/^mdi:/);
+      assert.equal(getWeatherConditionIcon(condition), icon);
+      assert.match(icon, /^mdi:/);
     });
   });
 
   it('returns the sunny icon for "sunny"', () => {
-    expect(getWeatherConditionIcon('sunny')).toBe('mdi:weather-sunny');
+    assert.equal(getWeatherConditionIcon('sunny'), 'mdi:weather-sunny');
   });
 
   it('falls back to a generic icon for an unknown condition', () => {
-    expect(getWeatherConditionIcon('meteor-shower')).toBe('mdi:weather-cloudy');
+    assert.equal(getWeatherConditionIcon('meteor-shower'), 'mdi:weather-cloudy');
   });
 
   it('falls back to a generic icon for null/undefined', () => {
-    expect(getWeatherConditionIcon(null)).toBe('mdi:weather-cloudy');
-    expect(getWeatherConditionIcon(undefined)).toBe('mdi:weather-cloudy');
+    assert.equal(getWeatherConditionIcon(null), 'mdi:weather-cloudy');
+    assert.equal(getWeatherConditionIcon(undefined), 'mdi:weather-cloudy');
   });
 });
 
@@ -174,11 +175,11 @@ describe('getWeatherConditionIcon', () => {
 
 describe('VERSION', () => {
   it('is a non-empty string', () => {
-    expect(typeof VERSION).toBe('string');
-    expect(VERSION.length).toBeGreaterThan(0);
+    assert.equal(typeof VERSION, 'string');
+    assert.ok(VERSION.length > 0);
   });
 
   it('follows semver format', () => {
-    expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
+    assert.match(VERSION, /^\d+\.\d+\.\d+/);
   });
 });

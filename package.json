@@ -8,8 +8,8 @@
     "prebuild": "node scripts/audit-gate.js",
     "build": "rollup -c",
     "watch": "rollup -c --watch",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "tests/run-capped.sh node --test --test-timeout=10000 --test-concurrency=1 tests/",
+    "coverage": "tests/run-capped.sh node --test --test-timeout=10000 --test-concurrency=1 --experimental-test-coverage --test-coverage-include='src/**' tests/"
   },
   "keywords": [
     "home-assistant",
@@ -23,7 +23,7 @@
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "rollup": "^4.60.1",
-    "vitest": "^4.1.2"
+    "happy-dom": "^21.0.4",
+    "rollup": "^4.60.1"
   }
 }

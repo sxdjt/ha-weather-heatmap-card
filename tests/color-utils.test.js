@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import {
   parseColor,
   interpolateColor,
@@ -13,21 +14,21 @@ import {
 
 describe('parseColor', () => {
   it('parses hex', () => {
-    expect(parseColor('#ff0000')).toEqual({ r: 255, g: 0, b: 0 });
-    expect(parseColor('#1a237e')).toEqual({ r: 26, g: 35, b: 126 });
+    assert.deepEqual(parseColor('#ff0000'), { r: 255, g: 0, b: 0 });
+    assert.deepEqual(parseColor('#1a237e'), { r: 26, g: 35, b: 126 });
   });
 
   it('parses rgb()', () => {
-    expect(parseColor('rgb(100, 200, 50)')).toEqual({ r: 100, g: 200, b: 50 });
+    assert.deepEqual(parseColor('rgb(100, 200, 50)'), { r: 100, g: 200, b: 50 });
   });
 
   it('parses rgba()', () => {
-    expect(parseColor('rgba(30, 136, 229, 1)')).toEqual({ r: 30, g: 136, b: 229 });
+    assert.deepEqual(parseColor('rgba(30, 136, 229, 1)'), { r: 30, g: 136, b: 229 });
   });
 
   it('returns null for unrecognized format', () => {
-    expect(parseColor('hsl(120, 50%, 50%)')).toBeNull();
-    expect(parseColor('notacolor')).toBeNull();
+    assert.equal(parseColor('hsl(120, 50%, 50%)'), null);
+    assert.equal(parseColor('notacolor'), null);
   });
 });
 
@@ -37,19 +38,19 @@ describe('parseColor', () => {
 
 describe('rgbaToHex', () => {
   it('passes hex through unchanged', () => {
-    expect(rgbaToHex('#abc123')).toBe('#abc123');
+    assert.equal(rgbaToHex('#abc123'), '#abc123');
   });
 
   it('converts rgb() to hex', () => {
-    expect(rgbaToHex('rgb(255, 0, 0)')).toBe('#ff0000');
+    assert.equal(rgbaToHex('rgb(255, 0, 0)'), '#ff0000');
   });
 
   it('converts rgba() to hex (ignores alpha)', () => {
-    expect(rgbaToHex('rgba(0, 255, 0, 0.5)')).toBe('#00ff00');
+    assert.equal(rgbaToHex('rgba(0, 255, 0, 0.5)'), '#00ff00');
   });
 
   it('returns #ffffff for unrecognized input', () => {
-    expect(rgbaToHex('notacolor')).toBe('#ffffff');
+    assert.equal(rgbaToHex('notacolor'), '#ffffff');
   });
 });
 
@@ -59,19 +60,19 @@ describe('rgbaToHex', () => {
 
 describe('getContrastTextColor', () => {
   it('returns black for a light background', () => {
-    expect(getContrastTextColor('#ffffff')).toBe('#000000');
-    expect(getContrastTextColor('#ffeb3b')).toBe('#000000'); // yellow
+    assert.equal(getContrastTextColor('#ffffff'), '#000000');
+    assert.equal(getContrastTextColor('#ffeb3b'), '#000000'); // yellow
   });
 
   it('returns white for a dark background', () => {
-    expect(getContrastTextColor('#000000')).toBe('#ffffff');
-    expect(getContrastTextColor('#1a237e')).toBe('#ffffff'); // dark blue
+    assert.equal(getContrastTextColor('#000000'), '#ffffff');
+    assert.equal(getContrastTextColor('#1a237e'), '#ffffff'); // dark blue
   });
 
   it('picks black on mid-tone fills where white is under 4.5:1', () => {
-    expect(getContrastTextColor('#f44336')).toBe('#000000'); // red: white 3.7:1, black 5.7:1
-    expect(getContrastTextColor('rgba(244, 81, 30, 1)')).toBe('#000000'); // Force 10: white 3.5:1
-    expect(getContrastTextColor('rgba(30, 136, 229, 1)')).toBe('#000000'); // Force 4: white 3.7:1
+    assert.equal(getContrastTextColor('#f44336'), '#000000'); // red: white 3.7:1, black 5.7:1
+    assert.equal(getContrastTextColor('rgba(244, 81, 30, 1)'), '#000000'); // Force 10: white 3.5:1
+    assert.equal(getContrastTextColor('rgba(30, 136, 229, 1)'), '#000000'); // Force 4: white 3.7:1
   });
 
   it('gives at least 4.5:1 on every default threshold fill', async () => {
@@ -81,26 +82,26 @@ describe('getContrastTextColor', () => {
     const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
     const fills = Object.values(constants).filter(Array.isArray).flat()
       .map((t) => t && t.color).filter((c) => typeof c === 'string');
-    expect(fills.length).toBeGreaterThan(0);
+    assert.ok(fills.length > 0);
     for (const fill of fills) {
       const hex = rgbaToHex(fill);
       const rgb = [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16));
       const text = getContrastTextColor(fill) === '#000000' ? [0, 0, 0] : [255, 255, 255];
-      expect(ratio(rgb, text), fill).toBeGreaterThanOrEqual(4.5);
+      assert.ok(ratio(rgb, text), fill >= 4.5);
     }
   });
 
   it('handles rgba() format', () => {
-    expect(getContrastTextColor('rgba(255, 255, 255, 1)')).toBe('#000000');
-    expect(getContrastTextColor('rgba(0, 0, 0, 1)')).toBe('#ffffff');
+    assert.equal(getContrastTextColor('rgba(255, 255, 255, 1)'), '#000000');
+    assert.equal(getContrastTextColor('rgba(0, 0, 0, 1)'), '#ffffff');
   });
 
   it('returns CSS variable for var() colors', () => {
-    expect(getContrastTextColor('var(--primary-color)')).toBe('var(--primary-text-color)');
+    assert.equal(getContrastTextColor('var(--primary-color)'), 'var(--primary-text-color)');
   });
 
   it('falls back to CSS variable for unrecognized format', () => {
-    expect(getContrastTextColor('notacolor')).toBe('var(--primary-text-color)');
+    assert.equal(getContrastTextColor('notacolor'), 'var(--primary-text-color)');
   });
 });
 
@@ -117,52 +118,52 @@ const THRESHOLDS = [
 describe('getColorForValue - step mode', () => {
   it('returns disabled color for null', () => {
     const result = getColorForValue(null, THRESHOLDS);
-    expect(result).toContain('disabled');
+    assert.ok(result.includes('disabled'));
   });
 
   it('returns disabled color for undefined', () => {
     const result = getColorForValue(undefined, THRESHOLDS);
-    expect(result).toContain('disabled');
+    assert.ok(result.includes('disabled'));
   });
 
   it('returns first threshold color for value below minimum', () => {
-    expect(getColorForValue(-10, THRESHOLDS)).toBe('#0000ff');
+    assert.equal(getColorForValue(-10, THRESHOLDS), '#0000ff');
   });
 
   it('returns color for exact threshold match', () => {
-    expect(getColorForValue(50, THRESHOLDS)).toBe('#00ff00');
+    assert.equal(getColorForValue(50, THRESHOLDS), '#00ff00');
   });
 
   it('returns correct color between thresholds', () => {
     // 75 is between 50 and 100 - should use the 50 threshold color
-    expect(getColorForValue(75, THRESHOLDS)).toBe('#00ff00');
+    assert.equal(getColorForValue(75, THRESHOLDS), '#00ff00');
   });
 
   it('returns last threshold color for value above maximum', () => {
-    expect(getColorForValue(200, THRESHOLDS)).toBe('#ff0000');
+    assert.equal(getColorForValue(200, THRESHOLDS), '#ff0000');
   });
 });
 
 describe('getColorForValue - interpolation mode', () => {
   it('returns first color for value at or below minimum', () => {
-    expect(getColorForValue(0, THRESHOLDS, true)).toBe('#0000ff');
-    expect(getColorForValue(-5, THRESHOLDS, true)).toBe('#0000ff');
+    assert.equal(getColorForValue(0, THRESHOLDS, true), '#0000ff');
+    assert.equal(getColorForValue(-5, THRESHOLDS, true), '#0000ff');
   });
 
   it('returns last color for value at or above maximum', () => {
-    expect(getColorForValue(100, THRESHOLDS, true)).toBe('#ff0000');
-    expect(getColorForValue(150, THRESHOLDS, true)).toBe('#ff0000');
+    assert.equal(getColorForValue(100, THRESHOLDS, true), '#ff0000');
+    assert.equal(getColorForValue(150, THRESHOLDS, true), '#ff0000');
   });
 
   it('returns an interpolated rgb() string for midpoint value', () => {
     const result = getColorForValue(25, THRESHOLDS, true, 'rgb');
-    expect(result).toMatch(/^rgb\(/);
+    assert.match(result, /^rgb\(/);
   });
 
   it('produces distinct interpolated colors at different points', () => {
     const a = getColorForValue(10, THRESHOLDS, true, 'hsl');
     const b = getColorForValue(40, THRESHOLDS, true, 'hsl');
-    expect(a).not.toBe(b);
+    assert.notEqual(a, b);
   });
 });
 
@@ -176,33 +177,33 @@ describe('interpolateColor', () => {
 
   it('rgb: midpoint is grey', () => {
     const result = interpolateColor(black, white, 0.5, 'rgb');
-    expect(result).toBe('rgb(128, 128, 128)');
+    assert.equal(result, 'rgb(128, 128, 128)');
   });
 
   it('gamma: returns an rgb() string', () => {
     const result = interpolateColor(black, white, 0.5, 'gamma');
-    expect(result).toMatch(/^rgb\(/);
+    assert.match(result, /^rgb\(/);
   });
 
   it('hsl: returns an rgb() string', () => {
     const result = interpolateColor(black, white, 0.5, 'hsl');
-    expect(result).toMatch(/^rgb\(/);
+    assert.match(result, /^rgb\(/);
   });
 
   it('lab: returns an rgb() string', () => {
     const result = interpolateColor(black, white, 0.5, 'lab');
-    expect(result).toMatch(/^rgb\(/);
+    assert.match(result, /^rgb\(/);
   });
 
   it('t=0 returns first color', () => {
-    expect(interpolateColor('#ff0000', '#0000ff', 0, 'rgb')).toBe('rgb(255, 0, 0)');
+    assert.equal(interpolateColor('#ff0000', '#0000ff', 0, 'rgb'), 'rgb(255, 0, 0)');
   });
 
   it('t=1 returns second color', () => {
-    expect(interpolateColor('#ff0000', '#0000ff', 1, 'rgb')).toBe('rgb(0, 0, 255)');
+    assert.equal(interpolateColor('#ff0000', '#0000ff', 1, 'rgb'), 'rgb(0, 0, 255)');
   });
 
   it('falls back to first color when input is unrecognized', () => {
-    expect(interpolateColor('notacolor', '#ffffff', 0.5, 'rgb')).toBe('notacolor');
+    assert.equal(interpolateColor('notacolor', '#ffffff', 0.5, 'rgb'), 'notacolor');
   });
 });
