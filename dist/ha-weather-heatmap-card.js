@@ -1,4 +1,4 @@
-/* Last modified: 12-Nov-2026 00:07 */
+/* Last modified: 26-Nov-2026 19:13 */
 // Card CSS styles
 
 /**
@@ -176,7 +176,7 @@ function createStyleElement() {
     /* Date headers row */
     .date-headers {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       gap: var(--cell-gap, 2px);
     }
 
@@ -211,7 +211,7 @@ function createStyleElement() {
     /* Data cells grid */
     .data-grid {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       grid-auto-rows: var(--cell-height, 36px);
       gap: var(--cell-gap, 2px);
     }
@@ -229,6 +229,18 @@ function createStyleElement() {
       font-size: var(--cell-font-size, 11px);
       padding: var(--cell-padding, 2px);
       box-sizing: border-box;
+      /* Columns are minmax(0, ...) so the grid always fits the card; a cell narrower than
+         its number clips it here, and _updateValueFit hides the numbers (guide D7) */
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Columns too narrow for their numbers: colors only. The value stays in each cell's
+       aria-label and the tooltip */
+    .values-hidden .cell .value,
+    .values-hidden .forecast-high,
+    .values-hidden .forecast-low {
+      visibility: hidden;
     }
 
     /* Only apply hover effects on devices with a true hover-capable pointer.
@@ -273,7 +285,7 @@ function createStyleElement() {
     /* Forecast row: one cell per column, aligned to the hourly data grid */
     .forecast-row {
       display: grid;
-      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, 1fr));
+      grid-template-columns: repeat(var(--days-count, 7), var(--cell-width, minmax(0, 1fr)));
       gap: var(--cell-gap, 2px);
     }
 
@@ -290,6 +302,8 @@ function createStyleElement() {
       font-size: var(--cell-font-size, 11px);
       box-sizing: border-box;
       cursor: pointer;
+      min-width: 0;
+      overflow: hidden;
     }
 
     /* Empty forecast cell over historical columns - preserves column width only */
@@ -1178,9 +1192,12 @@ function rgbaToHex(color) {
  * @returns {string} - HTML-escaped text
  */
 function escapeHtml(text) {
+  if (text == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  div.textContent = String(text);
+  // div.innerHTML encodes <, > and & but not ", so quotes are encoded too and the
+  // result is safe inside double-quoted attributes (same helper as rachio-card)
+  return div.innerHTML.replace(/"/g, '&quot;');
 }
 
 /**
@@ -1369,8 +1386,6 @@ class SensorHeatmapCard extends HTMLElement {
       this._handleClick(e);
     });
 
-    // Response cache: url -> { data, expiry }
-    this._responseCache = new Map();
   }
 
   // Home Assistant required method: set card configuration
@@ -1418,6 +1433,10 @@ class SensorHeatmapCard extends HTMLElement {
         (typeof config.forecast_dim !== 'number' || config.forecast_dim < 0 || config.forecast_dim > 1)) {
       throw new Error('forecast_dim must be a number between 0 and 1');
     }
+    if (config.forecast_offset !== undefined &&
+        (typeof config.forecast_offset !== 'number' || !Number.isFinite(config.forecast_offset))) {
+      throw new Error('forecast_offset must be a number');
+    }
 
     const validInterpolations = ['rgb', 'gamma', 'hsl', 'lab'];
     if (config.color_interpolation && !validInterpolations.includes(config.color_interpolation)) {
@@ -1434,12 +1453,14 @@ class SensorHeatmapCard extends HTMLElement {
       throw new Error('decimals must be between 0 and 2');
     }
 
+    // aggregation_mode applies to every card type (wind included)
+    const validAggregations = ['average', 'min', 'max'];
+    if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
+      throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
+    }
+
     // Temperature, humidity, and generic share the same validation rules
     if (card_type === 'temperature' || card_type === 'humidity' || card_type === 'generic') {
-      const validAggregations = ['average', 'min', 'max'];
-      if (config.aggregation_mode && !validAggregations.includes(config.aggregation_mode)) {
-        throw new Error(`aggregation_mode must be one of: ${validAggregations.join(', ')}`);
-      }
       if (config.start_hour !== undefined && (!Number.isInteger(config.start_hour) || config.start_hour < 0 || config.start_hour > 23)) {
         throw new Error('start_hour must be an integer between 0 and 23');
       }
@@ -1512,8 +1533,9 @@ class SensorHeatmapCard extends HTMLElement {
       // Unit (null = auto-detect from entity attributes)
       unit: config.unit || null,
 
-      // Refresh
-      refresh_interval: config.refresh_interval || 300,
+      // Refresh. setInterval treats a negative, NaN or tiny delay as 0, which re-fetched
+      // continuously; the editor's minimum is 10 s, invalid values use the 300 s default.
+      refresh_interval: this._validRefreshInterval(config.refresh_interval),
 
       // Interaction
       click_action: config.click_action || 'more-info',
@@ -1521,6 +1543,9 @@ class SensorHeatmapCard extends HTMLElement {
       // Display options
       show_entity_name: config.show_entity_name || false,
       show_legend: config.show_legend || false,
+      // An empty title keeps the default: the editor used to save title: '' into every
+      // config, so '' cannot mean "no title". show_title: false hides it.
+      show_title: config.show_title !== false,             // Default true
       show_month_year: config.show_month_year !== false,  // Default true
       show_footer: config.show_footer !== false,           // Default true
 
@@ -1530,7 +1555,6 @@ class SensorHeatmapCard extends HTMLElement {
       cell_padding: config.cell_padding !== undefined ? config.cell_padding : 2,
       cell_gap: config.cell_gap !== undefined ? config.cell_gap : 2,
       cell_font_size: config.cell_font_size !== undefined ? config.cell_font_size : 11,
-      compact: config.compact || false,
       compact_header: config.compact_header || false,
 
       // Visual options
@@ -1563,6 +1587,9 @@ class SensorHeatmapCard extends HTMLElement {
       // rendered dimmer than live data (see forecast_dim).
       forecast_type: config.forecast_type || 'daily',
       forecast_dim: config.forecast_dim !== undefined ? config.forecast_dim : 0.5,
+      // Added to every forecast temperature (daily high/low and hourly) before display
+      // and color mapping, for a forecast that runs warmer or colder than the sensor.
+      forecast_offset: config.forecast_offset !== undefined ? config.forecast_offset : 0,
 
       // --- Wind-only options ---
       direction_entity: config.direction_entity || null,
@@ -1583,17 +1610,22 @@ class SensorHeatmapCard extends HTMLElement {
     // Sort thresholds ascending
     this._config.color_thresholds = [...this._config.color_thresholds].sort((a, b) => a.value - b.value);
 
-    // Initialize active aggregation mode from config.
-    // Wind defaults to 'max' (peak gust); other types default to 'average'.
-    if (card_type === 'windspeed') {
-      this._activeAggregationMode = 'max';
-    } else {
-      this._activeAggregationMode = config.aggregation_mode || 'average';
-    }
+    // Initial Avg/Min/Max mode, the same rule for every card type: aggregation_mode,
+    // else the older statistic_type (mean -> average), else max for wind (peak gust)
+    // and average for the rest. Wind used to ignore both options.
+    this._activeAggregationMode = config.aggregation_mode
+      || { mean: 'average', min: 'min', max: 'max' }[config.statistic_type]
+      || (card_type === 'windspeed' ? 'max' : 'average');
 
     if (this._hass) {
       this._clearAndSetInterval();
     }
+  }
+
+  _validRefreshInterval(value) {
+    const seconds = Number(value);
+    if (value === undefined || value === null || value === '' || !Number.isFinite(seconds) || seconds <= 0) return 300;
+    return Math.max(10, seconds);
   }
 
   // Get default thresholds at config time (unit may not be known yet for wind)
@@ -1623,19 +1655,21 @@ class SensorHeatmapCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
 
-    if (!this._config || !this.isConnected) return;
-
-    // Auto-select wind thresholds based on detected unit (first time only, no custom thresholds)
+    // The constructor sets _config to {}, so it is always an object here.
+    // Auto-select wind thresholds based on detected unit (first time only, no custom
+    // thresholds). Done before the connected check: HA sets hass before it connects the
+    // card, and the first fetch (from connectedCallback) must already use the right scale.
     if (this._config.card_type === 'windspeed' &&
         !this._config._hasCustomThresholds &&
         !this._config._thresholdsInitialized) {
+      // _getUnit() always returns a unit for wind (mph when the entity has none)
       const detectedUnit = this._getUnit();
-      if (detectedUnit) {
-        this._config.color_thresholds = getWindThresholdsForUnit(detectedUnit).slice();
-        this._config._thresholdsInitialized = true;
-        console.log(`Weather Heatmap: Auto-selected ${detectedUnit} thresholds`);
-      }
+      this._config.color_thresholds = getWindThresholdsForUnit(detectedUnit).slice();
+      this._config._thresholdsInitialized = true;
+      console.log(`Weather Heatmap: Auto-selected ${detectedUnit} thresholds`);
     }
+
+    if (!this.isConnected) return;
 
     if (this._viewOffset === 0 && this._isDataStale()) {
       this._fetchHistoryData();
@@ -1646,7 +1680,7 @@ class SensorHeatmapCard extends HTMLElement {
   getCardSize() {
     const rows = this._processedData ? this._processedData.rows.length : 12;
     const sizing = this._getEffectiveSizing();
-    const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
+    const cellHeightPx = parseFloat(sizing.cellHeight);  // setConfig validated it (10-200)
     // The daily high/low forecast row adds roughly one extra cell height.
     // Hourly forecast reuses the existing hourly cells, so it adds no height.
     const forecastPx = this._showForecastRow() ? cellHeightPx : 0;
@@ -1654,24 +1688,27 @@ class SensorHeatmapCard extends HTMLElement {
   }
 
   // Home Assistant grid layout options (HA 2024.x+); suppresses the resize warning
-  // and enables proper full-width / custom-size support in the Layout tab
+  // and enables proper full-width / custom-size support in the Layout tab.
+  // rows: 'auto' makes the card exactly as tall as its content. The row estimate used
+  // above for masonry missed a wrapped title, the month label, the date row and the
+  // footer, so the card below drew over this one (guide D7; same fix as heatmap #19)
   getGridOptions() {
-    const rows = this._processedData ? this._processedData.rows.length : 12;
-    const sizing = this._getEffectiveSizing();
-    const cellHeightPx = parseFloat(sizing.cellHeight) || 36;
-    const forecastPx = this._showForecastRow() ? cellHeightPx : 0;
-    const gridRows = Math.ceil((rows * cellHeightPx + forecastPx + 100) / 50);
     return {
       columns: 12,
-      rows: gridRows,
+      rows: 'auto',
       min_columns: 6,
-      min_rows: 4,
     };
   }
 
   connectedCallback() {
     if (this._config && this._hass) {
       this._clearAndSetInterval();
+    }
+    // Columns shrink to fit the card; a resize can make them too narrow (or wide enough
+    // again) for their numbers. Guarded: the test environment has no ResizeObserver
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => this._updateValueFit());
+      this._resizeObserver.observe(this);
     }
   }
 
@@ -1680,6 +1717,33 @@ class SensorHeatmapCard extends HTMLElement {
       clearInterval(this._interval);
       this._interval = null;
     }
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+  }
+
+  // Hide the numbers (keep the colors) when a column is too narrow to show them. The
+  // value stays in each cell's aria-label and tooltip. Guide D7: before this, columns
+  // could not shrink below their numbers, so a long range ran past the card and
+  // ha-card's overflow: hidden cut off the newest days
+  _updateValueFit() {
+    // No grid while loading, on an error, or before the first data
+    const grid = this._content.querySelector('.data-grid');
+    if (!grid) return;
+    const width = grid.clientWidth;
+    let hide = false;
+    // 0 = not laid out yet (hidden tab, first paint): keep the numbers
+    if (width > 0) {
+      const columns = this._processedData.dates.length;
+      const sizing = this._getEffectiveSizing();
+      const gap = parseFloat(sizing.cellGap);
+      const columnWidth = (width - gap * (columns - 1)) / columns;
+      const texts = grid.parentElement.querySelectorAll('.cell .value, .forecast-high, .forecast-low');
+      const widestChars = Math.max(0, ...[...texts].map((el) => el.textContent.trim().length));
+      // Digits are about 0.6em wide; padding on both sides
+      const needed = widestChars * parseFloat(sizing.cellFontSize) * 0.6 + 2 * parseFloat(sizing.cellPadding);
+      hide = columnWidth < needed;
+    }
+    this._content.classList.toggle('values-hidden', hide);
   }
 
   _clearAndSetInterval() {
@@ -1699,34 +1763,24 @@ class SensorHeatmapCard extends HTMLElement {
     return (Date.now() - this._lastFetch) > this._config.refresh_interval * 1000;
   }
 
-  async fetchWithCache(url, timeoutMs = 30000, ttlMs = 5 * 60 * 1000) {
-    const now = Date.now();
-    const cacheKey = `${url}_offset${this._viewOffset}`;
-    const cached = this._responseCache.get(cacheKey);
-    if (cached && cached.expiry > now) return cached.data;
-
-    const data = await Promise.race([
-      this._hass.callApi('GET', url),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
-
-    this._responseCache.set(cacheKey, { data, expiry: now + ttlMs });
-    return data;
-  }
-
   _getDataSource() {
     const source = this._config.data_source;
     if (source === 'history') return 'history';
     if (source === 'statistics') return 'statistics';
-    // Auto: always use statistics - minimum bucket is 1 hour, so pre-aggregated stats are always appropriate
+    // Auto: statistics first (minimum bucket is 1 hour, so pre-aggregated stats fit);
+    // _fetchHistoryData falls back to history when the entity has none
     return 'statistics';
   }
 
   // Fetch historical data from Home Assistant
   async _fetchHistoryData() {
-    if (this._isLoading) return;
+    // One fetch at a time. A request made meanwhile (paging, a saved edit, the timer)
+    // runs when the current one ends, and that one's answer is not drawn: it is for
+    // the window or config the card has just left.
+    if (this._isLoading) {
+      this._refetchPending = true;
+      return;
+    }
 
     this._isLoading = true;
     this._error = null;
@@ -1734,7 +1788,7 @@ class SensorHeatmapCard extends HTMLElement {
 
     const isWind = this._config.card_type === 'windspeed';
     const dataSource = this._getDataSource();
-    console.log(`Weather Heatmap: Starting ${isWind ? 'wind' : 'temperature'} fetch using ${dataSource}...`);
+    console.log(`Weather Heatmap: Starting ${this._config.card_type} fetch using ${dataSource}...`);
 
     try {
       const now = new Date();
@@ -1759,6 +1813,13 @@ class SensorHeatmapCard extends HTMLElement {
 
       if (dataSource === 'statistics') {
         await this._fetchStatisticsData(startTime, endTime, partialBucketKey);
+        // auto: a sensor without long-term statistics (no state_class) returns no rows;
+        // use its recorder history instead of showing an empty card
+        const primary = isWind ? this._historyData.speed : this._historyData.temperature;
+        if (this._config.data_source === 'auto' && primary.length === 0) {
+          console.log('Weather Heatmap: No statistics for this entity, falling back to history');
+          await this._fetchHistoryApiData(startTime, endTime, partialBucketKey);
+        }
       } else {
         await this._fetchHistoryApiData(startTime, endTime, partialBucketKey);
       }
@@ -1772,20 +1833,30 @@ class SensorHeatmapCard extends HTMLElement {
         this._forecastHourly = null;
       }
 
+      this._isLoading = false;
+      if (this._runPendingFetch()) return;
       this._lastFetch = Date.now();
       this._processData();
-      this._isLoading = false;
       this._render();
 
     } catch (error) {
-      console.error('Weather Heatmap: Fetch error:', error);
       this._isLoading = false;
+      if (this._runPendingFetch()) return;
+      console.error('Weather Heatmap: Fetch error:', error);
       this._error = {
-        message: `Failed to fetch ${isWind ? 'wind speed' : 'temperature'} history`,
+        message: `Failed to fetch ${isWind ? 'wind speed' : this._valueLabel().toLowerCase()} history`,
         details: error.message
       };
       this._render();
     }
+  }
+
+  // Starts the fetch requested while the last one was out; true when there was one
+  _runPendingFetch() {
+    if (!this._refetchPending) return false;
+    this._refetchPending = false;
+    this._fetchHistoryData();
+    return true;
   }
 
   // Fetch data using the history/period REST API
@@ -1859,8 +1930,6 @@ class SensorHeatmapCard extends HTMLElement {
       })
     );
 
-    const statisticType = this._config.statistic_type;
-
     if (isWind) {
       const speedStats = statsResult[this._config.entity] || [];
       const directionStats = this._config.direction_entity
@@ -1886,11 +1955,16 @@ class SensorHeatmapCard extends HTMLElement {
         startTime, endTime, partialBucketKey, dataSource: 'statistics'
       };
     } else {
+      // Keep all three HA pre-computed stats per hourly bucket (as for wind), so the
+      // Min/Max toggle shows the real hourly min/max rather than the min/max of the
+      // hourly means
       const tempStats = statsResult[this._config.entity] || [];
       const tempData = tempStats.map(stat => ({
         last_changed: stat.start,
-        state: String(stat[statisticType] ?? stat.mean ?? ''),
-      })).filter(p => p.state !== '' && p.state !== 'null');
+        mean: stat.mean ?? null,
+        max: stat.max ?? null,
+        min: stat.min ?? null,
+      })).filter(p => p.mean !== null || p.max !== null || p.min !== null);
 
       this._historyData = {
         temperature: tempData,
@@ -1959,6 +2033,7 @@ class SensorHeatmapCard extends HTMLElement {
       }));
 
       const forecastList = result?.response?.[entityId]?.forecast || [];
+      const offset = this._config.forecast_offset;
 
       if (isHourly) {
         this._forecastHourly = this._bucketHourlyForecast(forecastList);
@@ -1970,8 +2045,8 @@ class SensorHeatmapCard extends HTMLElement {
           const dateKey = getDateKey(new Date(item.datetime));
           forecastMap[dateKey] = {
             // 'temperature' is the daily high, 'templow' is the daily low
-            high: item.temperature ?? null,
-            low: item.templow ?? null,
+            high: item.temperature != null ? item.temperature + offset : null,
+            low: item.templow != null ? item.templow + offset : null,
             condition: item.condition || null,
           };
         });
@@ -2004,7 +2079,7 @@ class SensorHeatmapCard extends HTMLElement {
       const key = `${dateKey}_${hourBucket}`;
 
       if (!buckets[key]) buckets[key] = { sum: 0, count: 0, condition: null };
-      buckets[key].sum += item.temperature;
+      buckets[key].sum += item.temperature + this._config.forecast_offset;
       buckets[key].count += 1;
       // Keep the condition from the first forecast hour that falls in the bucket
       if (buckets[key].condition === null && item.condition) buckets[key].condition = item.condition;
@@ -2014,7 +2089,8 @@ class SensorHeatmapCard extends HTMLElement {
     Object.keys(buckets).forEach(key => {
       const bucket = buckets[key];
       map[key] = {
-        temperature: bucket.count > 0 ? bucket.sum / bucket.count : null,
+        // A bucket exists only once a forecast hour with a temperature landed in it
+        temperature: bucket.sum / bucket.count,
         condition: bucket.condition,
       };
     });
@@ -2036,9 +2112,14 @@ class SensorHeatmapCard extends HTMLElement {
   }
 
   _processTemperatureData() {
-    const { temperature, startTime, partialBucketKey } = this._historyData;
+    const { temperature, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
+    // setConfig always sets the mode. Statistics rows carry mean/min/max: read the
+    // field for the active mode.
+    const activeMode = this._activeAggregationMode;
+    const statField = { average: 'mean', max: 'max', min: 'min' }[activeMode];
+    const isStatistics = dataSource === 'statistics';
 
     // Build grid using running statistics (O(1) memory per bucket)
     const grid = {};
@@ -2051,7 +2132,9 @@ class SensorHeatmapCard extends HTMLElement {
 
       if (!grid[key]) grid[key] = { sum: 0, count: 0, min: null, max: null };
 
-      const value = parseFloat(point.state);
+      const value = isStatistics
+        ? parseFloat(point[statField] ?? point.mean ?? '')
+        : parseFloat(point.state);
       if (!isNaN(value)) {
         grid[key].sum += value;
         grid[key].count += 1;
@@ -2065,7 +2148,7 @@ class SensorHeatmapCard extends HTMLElement {
     Object.keys(grid).forEach(key => {
       const bucket = grid[key];
       if (bucket.count > 0) {
-        switch (this._activeAggregationMode || 'average') {
+        switch (activeMode) {
           case 'min': bucket.temperature = bucket.min; break;
           case 'max': bucket.temperature = bucket.max; break;
           default:    bucket.temperature = bucket.sum / bucket.count; break;
@@ -2219,12 +2302,12 @@ class SensorHeatmapCard extends HTMLElement {
     const { speed, direction, startTime, partialBucketKey, dataSource } = this._historyData;
     const intervalHours = this._config.time_interval;
     const rowsPerDay = 24 / intervalHours;
-    const activeMode = this._activeAggregationMode || 'max';
+    const activeMode = this._activeAggregationMode;  // always set by setConfig
     const isStatistics = dataSource === 'statistics';
 
     // Maps toggle mode to the HA statistics field name (statistics path only)
     const modeToStatField = { average: 'mean', max: 'max', min: 'min' };
-    const statField = modeToStatField[activeMode] || 'max';
+    const statField = modeToStatField[activeMode];
 
     const grid = {};
 
@@ -2430,7 +2513,7 @@ class SensorHeatmapCard extends HTMLElement {
     this._content.innerHTML = `
       ${this._isLoading ? '<div class="loading-bar"></div>' : ''}
       <div class="card-header">
-        <span class="title">${escapeHtml(this._config.title)}</span>
+        ${this._config.show_title ? `<span class="title">${escapeHtml(this._config.title)}</span>` : ''}
         ${this._renderNavControls()}
       </div>
 
@@ -2448,7 +2531,11 @@ class SensorHeatmapCard extends HTMLElement {
       this._content.style.setProperty('--days-count', columnCount);
       const sizing = this._getEffectiveSizing();
       this._content.style.setProperty('--cell-height', sizing.cellHeight);
-      this._content.style.setProperty('--cell-width', sizing.cellWidth);
+      // minmax(0, ...): a column may shrink below its numbers so the grid always fits the
+      // card (_updateValueFit hides numbers that no longer fit). cell_width is the most a
+      // column takes
+      const columnTrack = `minmax(0, ${sizing.cellWidth})`;
+      this._content.style.setProperty('--cell-width', columnTrack);
       this._content.style.setProperty('--cell-padding', sizing.cellPadding);
       this._content.style.setProperty('--cell-gap', sizing.cellGap);
       this._content.style.setProperty('--cell-font-size', sizing.cellFontSize);
@@ -2463,8 +2550,9 @@ class SensorHeatmapCard extends HTMLElement {
       if (dataGrid) {
         dataGrid.style.gap = sizing.cellGap;
         dataGrid.style.gridAutoRows = sizing.cellHeight;
-        dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${sizing.cellWidth})`;
+        dataGrid.style.gridTemplateColumns = `repeat(${columnCount}, ${columnTrack})`;
       }
+      this._updateValueFit();
     }
 
     // Put focus back on the same control. A nav button can come back disabled (Next at
@@ -2506,8 +2594,8 @@ class SensorHeatmapCard extends HTMLElement {
    */
   _renderAggregationToggle() {
     const AGG_LABELS = { average: 'Avg', min: 'Min', max: 'Max' };
-    const mode = this._activeAggregationMode || 'average';
-    const label = AGG_LABELS[mode] || mode;
+    const mode = this._activeAggregationMode;
+    const label = AGG_LABELS[mode];
     return `
       <button class="nav-btn-current"
               data-action="toggle-aggregation"
@@ -2629,7 +2717,7 @@ class SensorHeatmapCard extends HTMLElement {
           this._config.color_interpolation
         );
         const textColor = getContrastTextColor(bgColor);
-        styleAttr = ` style="background-color: ${bgColor}; color: ${textColor}"`;
+        styleAttr = ` style="background-color: ${escapeHtml(bgColor)}; color: ${textColor}"`;
       }
 
       const iconName = forecast.condition ? getWeatherConditionIcon(forecast.condition) : null;
@@ -2638,7 +2726,8 @@ class SensorHeatmapCard extends HTMLElement {
         : '';
       const highStr = forecast.high !== null ? `${forecast.high.toFixed(decimals)}${degree}` : '-';
       const lowStr = forecast.low !== null ? `${forecast.low.toFixed(decimals)}${degree}` : '-';
-      const conditionLabel = forecast.condition ? ` ${forecast.condition}` : '';
+      // The condition comes from the weather integration: escape it for the attribute
+      const conditionLabel = forecast.condition ? ` ${escapeHtml(forecast.condition)}` : '';
 
       return `
         <div class="forecast-cell"
@@ -2700,7 +2789,7 @@ class SensorHeatmapCard extends HTMLElement {
 
     return `
       <div class="${cellClass}"
-           style="background-color: ${bgColor}; color: ${textColor};${forecastStyle}"
+           style="background-color: ${escapeHtml(bgColor)}; color: ${textColor};${forecastStyle}"
            data-value="${cell.temperature}"
            data-date="${cell.date.toISOString()}"
            data-partial="${cell.isPartial ? 'true' : 'false'}"
@@ -2708,7 +2797,7 @@ class SensorHeatmapCard extends HTMLElement {
            data-forecast="${cell.isForecast ? 'true' : 'false'}"
            tabindex="0"
            role="button"
-           aria-label="Temperature ${cell.temperature.toFixed(decimals)}${partialLabel}${filledLabel}${forecastLabel}">
+           aria-label="${this._valueLabel()} ${cell.temperature.toFixed(decimals)}${partialLabel}${filledLabel}${forecastLabel}">
         <span class="value">${cell.temperature.toFixed(decimals)}${partialIndicator}</span>
       </div>
     `;
@@ -2740,7 +2829,7 @@ class SensorHeatmapCard extends HTMLElement {
 
     return `
       <div class="${cellClass}"
-           style="background-color: ${bgColor}; color: ${textColor}"
+           style="background-color: ${escapeHtml(bgColor)}; color: ${textColor}"
            data-value="${cell.speed}"
            data-direction="${cell.direction !== null ? cell.direction : ''}"
            data-date="${cell.date.toISOString()}"
@@ -2770,7 +2859,7 @@ class SensorHeatmapCard extends HTMLElement {
       const denominator = Math.max(maxValue, 75);
       const gradientStops = thresholds.map(t => {
         const percent = Math.min((t.value / denominator) * 100, 100);
-        return `${t.color} ${percent.toFixed(0)}%`;
+        return `${escapeHtml(t.color)} ${percent.toFixed(0)}%`;
       }).join(', ');
 
       const MIN_LABEL_SPACING = 8;
@@ -2780,7 +2869,7 @@ class SensorHeatmapCard extends HTMLElement {
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
         const isLast = i === thresholds.length - 1;
-        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${isLast ? '+' : ''}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${escapeHtml(t.value)}${isLast ? '+' : ''}</span>`;
       }).join('');
 
       return `
@@ -2802,7 +2891,7 @@ class SensorHeatmapCard extends HTMLElement {
           const t = i / 20;
           const value = minVal + t * range;
           const color = getColorForValue(value, thresholds, true, method);
-          stops.push(`${color} ${(t * 100).toFixed(1)}%`);
+          stops.push(`${escapeHtml(color)} ${(t * 100).toFixed(1)}%`);
         }
         gradientStops = stops.join(', ');
       } else {
@@ -2810,11 +2899,11 @@ class SensorHeatmapCard extends HTMLElement {
         for (let i = 0; i < thresholds.length; i++) {
           const current = thresholds[i];
           const pct = ((current.value - minVal) / range) * 100;
-          stops.push(`${current.color} ${pct.toFixed(1)}%`);
+          stops.push(`${escapeHtml(current.color)} ${pct.toFixed(1)}%`);
           if (i < thresholds.length - 1) {
             const next = thresholds[i + 1];
             const nextPct = ((next.value - minVal) / range) * 100;
-            stops.push(`${current.color} ${nextPct.toFixed(1)}%`);
+            stops.push(`${escapeHtml(current.color)} ${nextPct.toFixed(1)}%`);
           }
         }
         gradientStops = stops.join(', ');
@@ -2827,7 +2916,7 @@ class SensorHeatmapCard extends HTMLElement {
         const pct = ((t.value - minVal) / range) * 100;
         if (pct - lastLabelPct < MIN_LABEL_SPACING) return '';
         lastLabelPct = pct;
-        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${t.value}${unit}</span>`;
+        return `<span style="position:absolute; left:${pct.toFixed(1)}%;">${escapeHtml(t.value)}${escapeHtml(unit)}</span>`;
       }).join('');
 
       return `
@@ -2856,22 +2945,27 @@ class SensorHeatmapCard extends HTMLElement {
         <div class="footer-stats">
           <div class="stat">
             <span class="stat-label">Min</span>
-            <span class="stat-value">${stats.min.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.min.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
             <span class="stat-label">Max</span>
-            <span class="stat-value">${stats.max.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.max.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
             <span class="stat-label">Avg</span>
-            <span class="stat-value">${stats.avg.toFixed(decimals)} ${unit}</span>
+            <span class="stat-value">${stats.avg.toFixed(decimals)} ${escapeHtml(unit)}</span>
           </div>
         </div>
         ${entityName}
       </div>
     `;
+  }
+
+  // What a non-wind cell measures, for labels: these card types share one code path
+  _valueLabel() {
+    return { temperature: 'Temperature', humidity: 'Humidity' }[this._config.card_type] || 'Value';
   }
 
   // Get unit of measurement, handling degree symbol option for temperature
@@ -2891,6 +2985,9 @@ class SensorHeatmapCard extends HTMLElement {
 
       if (this._config.card_type === 'windspeed') {
         unit = detected || 'mph';
+      } else if (this._config.card_type === 'generic') {
+        // A generic sensor has no natural unit; show none rather than guessing
+        unit = detected || '';
       } else {
         unit = detected || '°F';
       }
@@ -2965,7 +3062,7 @@ class SensorHeatmapCard extends HTMLElement {
    */
   _cycleAggregationMode() {
     const CYCLE = ['average', 'min', 'max'];
-    const currentIndex = CYCLE.indexOf(this._activeAggregationMode || 'average');
+    const currentIndex = CYCLE.indexOf(this._activeAggregationMode);
     this._activeAggregationMode = CYCLE[(currentIndex + 1) % CYCLE.length];
     this._processData();
     this._render();
@@ -3009,8 +3106,8 @@ class SensorHeatmapCard extends HTMLElement {
         : '';
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
-        <div>Speed: ${speed.toFixed(1)} ${unit}${dirText}</div>
-        <div>Mode: ${this._activeAggregationMode || 'max'}</div>
+        <div>Speed: ${speed.toFixed(1)} ${escapeHtml(unit)}${dirText}</div>
+        <div>Mode: ${this._activeAggregationMode}</div>
         ${partialNote}
       `;
     } else {
@@ -3020,8 +3117,8 @@ class SensorHeatmapCard extends HTMLElement {
       const filledNote = isFilled ? '<div><em>(estimated - gap filled)</em></div>' : '';
       tooltip.innerHTML = `
         <div><strong>${dateStr}</strong></div>
-        <div>Temperature: ${temperature.toFixed(decimals)} ${unit}</div>
-        <div>Mode: ${this._activeAggregationMode || 'average'}</div>
+        <div>${this._valueLabel()}: ${temperature.toFixed(decimals)} ${escapeHtml(unit)}</div>
+        <div>Mode: ${this._activeAggregationMode}</div>
         ${partialNote}
         ${filledNote}
       `;
@@ -3094,6 +3191,48 @@ const EDITOR_STYLES = `
   }
 `;
 
+// Values the card uses when a key is unset, shown in the editor fields. Type-specific
+// defaults are resolved in _defaultFor().
+const EDITOR_DEFAULTS = {
+  card_type: 'temperature',
+  entity: '',
+  title: '',
+  days: 7,
+  time_interval: 2,
+  time_format: '24',
+  refresh_interval: 300,
+  click_action: 'more-info',
+  show_entity_name: false,
+  show_title: true,
+  show_month_year: true,
+  show_legend: false,
+  show_footer: true,
+  cell_height: 36,
+  cell_width: '1fr',
+  cell_padding: 2,
+  cell_gap: 2,
+  cell_font_size: 11,
+  compact_header: false,
+  rounded_corners: true,
+  interpolate_colors: false,
+  color_interpolation: 'hsl',
+  data_source: 'auto',
+  start_hour: 0,
+  end_hour: 23,
+  unit: '',
+  show_degree_symbol: true,
+  fill_gaps: false,
+  fill_gaps_style: 'dimmed',
+  forecast_entity: '',
+  forecast_days: 3,
+  forecast_type: 'daily',
+  forecast_dim: 0.5,
+  forecast_offset: 0,
+  direction_entity: '',
+  show_direction: true,
+  direction_format: 'arrow',
+};
+
 /**
  * Visual editor for the Sensor Heatmap Card.
  * Shows all common fields, and conditionally shows temperature-only or
@@ -3137,53 +3276,9 @@ class SensorHeatmapCardEditor extends HTMLElement {
       await entitiesCard.constructor.getConfigElement();
     }
 
-    // Merged defaults covering both card types
-    const defaults = {
-      card_type: 'temperature',
-      entity: '',
-      title: '',
-      days: 7,
-      time_interval: 2,
-      time_format: '24',
-      refresh_interval: 300,
-      click_action: 'more-info',
-      show_entity_name: false,
-      show_month_year: true,
-      show_legend: false,
-      show_footer: true,
-      cell_height: 36,
-      cell_width: '1fr',
-      cell_padding: 2,
-      cell_gap: 2,
-      cell_font_size: 11,
-      compact: false,
-      compact_header: false,
-      rounded_corners: true,
-      interpolate_colors: false,
-      color_interpolation: 'hsl',
-      color_thresholds: [],
-      data_source: 'auto',
-      // Temperature-specific defaults
-      start_hour: 0,
-      end_hour: 23,
-      aggregation_mode: 'average',
-      decimals: 1,
-      unit: '',
-      show_degree_symbol: true,
-      fill_gaps: false,
-      statistic_type: 'mean',
-      // Forecast (temperature-only)
-      forecast_entity: '',
-      forecast_days: 3,
-      forecast_type: 'daily',
-      forecast_dim: 0.5,
-      // Wind-specific defaults
-      direction_entity: '',
-      show_direction: true,
-      direction_format: 'arrow',
-    };
-
-    this._config = { ...defaults, ...this._config };
+    // Only keys the user set are kept in the config; EDITOR_DEFAULTS are shown in the
+    // fields but never written back (the old merge saved every default, e.g. decimals 1
+    // on humidity cards, whose card default is 0).
 
     if (this.content) {
       this._updateValues();
@@ -3217,8 +3312,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
     //           'temperature' = only shown when card_type is 'temperature'
     //           'windspeed'   = only shown when card_type is 'windspeed'
     //
-    // Virtual keys 'unit_temp' / 'unit_wind' and 'statistic_type_temp' / 'statistic_type_wind'
-    // both write to 'unit' and 'statistic_type' in the config respectively.
+    // Virtual keys 'unit_temp' / 'unit_wind' / 'unit_generic' all write to 'unit' in the config.
     // This lets us show different option sets for the same config key per card type.
     const fields = [
       // Card type selector - always visible, drives field visibility
@@ -3229,12 +3323,14 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'entity', key: 'entity', label: 'Entity', required: true },
       { type: 'text', key: 'title', label: 'Title' },
       { type: 'number', key: 'days', label: 'Days', min: 1, max: 365 },
-      { type: 'number', key: 'time_interval', label: 'Time Interval (hours)', min: 1, max: 24 },
+      // The card accepts only these intervals (they divide the day evenly)
+      { type: 'select', key: 'time_interval', label: 'Time Interval (hours)', numeric: true,
+        options: { 1: '1', 2: '2', 3: '3', 4: '4', 6: '6', 8: '8', 12: '12', 24: '24' } },
       { type: 'select', key: 'time_format', label: 'Time Format',
         options: { 24: '24h', 12: '12h' } },
       { type: 'select', key: 'data_source', label: 'Data Source',
         options: {
-          'auto': 'Auto (statistics for past, history for current)',
+          'auto': 'Auto (statistics, or history if the sensor has none)',
           'history': 'History only (limited by purge_keep_days)',
           'statistics': 'Statistics only (long-term hourly data)'
         } },
@@ -3242,22 +3338,17 @@ class SensorHeatmapCardEditor extends HTMLElement {
       // Data aggregation section - prominent placement since these affect what values are shown
       { type: 'section', key: 'section_aggregation', label: 'Data Aggregation',
         options: { description:
-          'Aggregation Mode: how multiple raw sensor readings within a single time cell are combined ' +
-          '(average, min, or max of all history readings in that interval). ' +
-          'Statistic Type: which pre-computed value to pull when fetching long-term statistics ' +
-          '(HA records mean, max, and min per hour — used when data is older than your recorder history).'
+          'Aggregation Mode: what each cell shows - the average, minimum or maximum of the readings ' +
+          'in its time interval (from long-term statistics, the hourly mean, min or max). ' +
+          'This is the starting mode; the Avg/Min/Max button in the card header switches it.'
         } },
       { type: 'select', key: 'aggregation_mode', label: 'Aggregation Mode',
-        options: { average: 'Average', min: 'Min', max: 'Max' }, showWhen: ['temperature', 'humidity', 'generic'] },
-      // Virtual keys: both write to 'statistic_type' in config with different option sets per card type
-      { type: 'select', key: 'statistic_type_temp', label: 'Statistic Type',
-        options: { 'mean': 'Average (mean)', 'max': 'Maximum', 'min': 'Minimum' }, showWhen: ['temperature', 'humidity', 'generic'] },
-      { type: 'select', key: 'statistic_type_wind', label: 'Statistic Type',
-        options: { 'max': 'Maximum', 'mean': 'Average (mean)', 'min': 'Minimum' }, showWhen: 'windspeed' },
+        options: { average: 'Average', min: 'Min', max: 'Max' } },
 
       { type: 'number', key: 'refresh_interval', label: 'Refresh Interval (s)', min: 10, max: 3600 },
       { type: 'select', key: 'click_action', label: 'Click Action',
         options: { none: 'None', 'more-info': 'More Info', tooltip: 'Tooltip' } },
+      { type: 'switch', key: 'show_title', label: 'Show Title' },
       { type: 'switch', key: 'show_entity_name', label: 'Show Entity Name' },
       { type: 'switch', key: 'show_month_year', label: 'Show Month/Year Label' },
       { type: 'switch', key: 'show_legend', label: 'Show Legend' },
@@ -3267,7 +3358,6 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'number', key: 'cell_padding', label: 'Cell Padding', min: 0, max: 20 },
       { type: 'number', key: 'cell_gap', label: 'Cell Gap', min: 0, max: 20 },
       { type: 'number', key: 'cell_font_size', label: 'Cell Font Size', min: 6, max: 24 },
-      { type: 'switch', key: 'compact', label: 'Compact Mode' },
       { type: 'switch', key: 'compact_header', label: 'Compact Header' },
       { type: 'switch', key: 'rounded_corners', label: 'Rounded Corners' },
       { type: 'switch', key: 'interpolate_colors', label: 'Interpolate Colors' },
@@ -3278,7 +3368,9 @@ class SensorHeatmapCardEditor extends HTMLElement {
       { type: 'number', key: 'start_hour', label: 'Start Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'number', key: 'end_hour', label: 'End Hour', min: 0, max: 23, showWhen: ['temperature', 'humidity', 'generic'] },
       { type: 'number', key: 'decimals', label: 'Decimals', min: 0, max: 2 },
-      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)', showWhen: ['temperature', 'humidity', 'generic'] },
+      { type: 'switch', key: 'fill_gaps', label: 'Fill Gaps (forward-fill last known value - use with care)' },
+      { type: 'select', key: 'fill_gaps_style', label: 'Filled Cell Style',
+        options: { dimmed: 'Dimmed (reduced opacity, dashed border)', none: 'Same as real data' } },
       // Temperature-only fields
       { type: 'select', key: 'unit_temp', label: 'Unit',
         options: { '': 'Auto-detect', '\u00b0C': 'Celsius', '\u00b0F': 'Fahrenheit' }, showWhen: 'temperature' },
@@ -3290,6 +3382,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
         options: { daily: 'Daily (high/low row)', hourly: 'Hourly (dimmed cells)' }, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_dim', label: 'Forecast Dim (0 = none, 1 = invisible)', min: 0, max: 1, step: 0.1, showWhen: 'temperature' },
+      { type: 'number', key: 'forecast_offset', label: 'Forecast Offset (added to forecast temperatures)', step: 0.1, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },
@@ -3327,7 +3420,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
     }
   }
 
-  _createField({ type, key, label, min, max, step, options, required, showWhen }) {
+  _createField({ type, key, label, min, max, step, options, required, showWhen, numeric }) {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
     wrapper.style.flexDirection = 'column';
@@ -3405,7 +3498,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
       addBtn.style.alignSelf = 'flex-start';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newThresholds = [...this._config.color_thresholds];
+        const newThresholds = [...(this._config.color_thresholds || [])];
         newThresholds.push({ value: 0, color: '#ffffff' });
         this._onFieldChange('color_thresholds', newThresholds);
         this._refreshThresholdEditor();
@@ -3444,7 +3537,12 @@ class SensorHeatmapCardEditor extends HTMLElement {
 
         input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          const value = type === 'number' ? Number(e.detail.value) : e.detail.value;
+          // A cleared number field unsets the key; Number('') would store 0, which the
+          // card rejects for several fields (cell height, forecast days)
+          const raw = e.detail.value;
+          const value = type === 'number'
+            ? (raw === '' || raw === null || raw === undefined || Number.isNaN(Number(raw)) ? undefined : Number(raw))
+            : raw;
           this._onFieldChange(key, value);
         });
 
@@ -3462,7 +3560,8 @@ class SensorHeatmapCardEditor extends HTMLElement {
 
         input.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          this._onFieldChange(key, e.detail.value);
+          // Select values are strings; numeric selects store numbers
+          this._onFieldChange(key, numeric ? Number(e.detail.value) : e.detail.value);
         });
       }
 
@@ -3480,9 +3579,9 @@ class SensorHeatmapCardEditor extends HTMLElement {
 
     // Virtual key mapping: all variants write to the same real config key
     if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
-    if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
 
     const updated = { ...this._config, [configKey]: value };
+    if (value === undefined) delete updated[configKey];
     this._config = updated;
 
     // Update field visibility whenever card_type changes
@@ -3505,7 +3604,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _updateValues() {
-    if (!this._config) return;
+    // setConfig always leaves _config an object
 
     for (const key in this.fields) {
       const field = this.fields[key];
@@ -3521,16 +3620,30 @@ class SensorHeatmapCardEditor extends HTMLElement {
       // Map virtual keys to the real config key for reading
       let configKey = key;
       if (key === 'unit_temp' || key === 'unit_wind' || key === 'unit_generic') configKey = 'unit';
-      if (key === 'statistic_type_temp' || key === 'statistic_type_wind') configKey = 'statistic_type';
+  
+      const value = this._config[configKey] ?? this._defaultFor(configKey);
 
-      const value = this._config[configKey];
-
+      // Every field has a display default (EDITOR_DEFAULTS / _defaultFor), so value is set
       if (field.type === 'switch') {
         input.checked = !!value;
+      } else if (field.type === 'select') {
+        input.value = String(value);
       } else {
-        input.value = value !== undefined ? value : '';
+        input.value = value;
       }
     }
+  }
+
+  // The value the card uses for an unset key, for display only
+  _defaultFor(key) {
+    const cardType = this._config.card_type || 'temperature';
+    if (key === 'decimals') return cardType === 'humidity' ? 0 : 1;
+    // The card's starting mode: statistic_type (older option) when set, else max for wind
+    if (key === 'aggregation_mode') {
+      return { mean: 'average', min: 'min', max: 'max' }[this._config.statistic_type]
+        || (cardType === 'windspeed' ? 'max' : 'average');
+    }
+    return EDITOR_DEFAULTS[key];
   }
 
   // Hex value for the color picker, or null when the color cannot be shown there
@@ -3546,7 +3659,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _updateThreshold(index, key, value) {
-    const newThresholds = [...this._config.color_thresholds];
+    const newThresholds = [...(this._config.color_thresholds || [])];
     newThresholds[index] = { ...newThresholds[index], [key]: value };
     this._onFieldChange('color_thresholds', newThresholds);
   }
@@ -3592,6 +3705,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
       removeBtn.append('Remove', hidden);
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // A row exists only for an entry in color_thresholds
         const newThresholds = [...this._config.color_thresholds];
         newThresholds.splice(index, 1);
         this._onFieldChange('color_thresholds', newThresholds);
@@ -3676,7 +3790,7 @@ class SensorHeatmapCardEditor extends HTMLElement {
       this.container_threshold.appendChild(item);
     };
 
-    if (!this._config.color_thresholds) this._config.color_thresholds = [];
+    // Called only when the row count differs from color_thresholds, so the list exists
     this._config.color_thresholds.forEach((t, i) => createRow(t, i));
   }
 
