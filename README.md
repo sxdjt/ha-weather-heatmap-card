@@ -93,6 +93,7 @@ forecast_entity: weather.home
 forecast_type: hourly
 forecast_days: 1
 forecast_dim: 0.5
+forecast_offset: -2
 ```
 
 ```yaml
@@ -173,6 +174,7 @@ entity: sensor.wind_speed
 | `forecast_type` | string | `"daily"` | `"daily"` appends future day columns with a forecast header row (condition icon + high/low); `"hourly"` fills the appended future day cells with hourly forecast temperatures |
 | `forecast_days` | number | `3` | Number of forecast days to append (1-7) |
 | `forecast_dim` | number | `0.5` | How much dimmer hourly forecast cells are than live data: `0` = no dimming, `1` = fully transparent. Only applies when `forecast_type: hourly` |
+| `forecast_offset` | number | `0` | Added to every forecast temperature (daily high/low and hourly cells) before display and coloring, e.g. `-2` for a forecast that runs 2 degrees warmer than your sensor. Decimals allowed. Measured values are unchanged |
 | `show_degree_symbol` | boolean | `true` | Show degree symbol in cells |
 | `unit` | string | auto-detect | Override unit (`"°F"`, `"°C"`) |
 
@@ -182,6 +184,7 @@ Forecast notes:
 - Forecast data is fetched via the `weather.get_forecasts` service. The `forecast_entity` must be a weather entity that supports the requested forecast type (`daily` or `hourly`).
 - Daily mode (`forecast_type: daily`): the forecast row covers the current day (over its existing history column) plus the appended future days. Appended future day columns show only the daily high/low in the forecast row; their hourly cells are left blank.
 - Hourly mode (`forecast_type: hourly`): the appended future day columns' hourly cells are filled with forecast temperatures, rendered dimmer than live data (controlled by `forecast_dim`). Buckets the weather entity does not cover render blank. Use `forecast_days: 1` for the next day only, as most weather entities provide roughly one to two days of hourly forecast.
+- `forecast_offset` corrects a forecast that is always warmer or colder than your sensor, for example when the forecast station is far from your home. It uses the forecast's own unit and changes forecast values only.
 - Forecast values are excluded from the Min/Max/Avg footer statistics.
 - Clicking a forecast cell opens the more-info dialog for the weather entity.
 

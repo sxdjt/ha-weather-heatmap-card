@@ -55,6 +55,10 @@ describe('field types', () => {
     assert.equal(lastConfig(editor).days, 14);
     fireValue(field(editor, 'days'), 'abc');
     assert.equal('days' in lastConfig(editor), false);
+    fireValue(field(editor, 'forecast_offset'), '-1.5');
+    assert.equal(lastConfig(editor).forecast_offset, -1.5);
+    fireValue(field(editor, 'forecast_offset'), '');
+    assert.equal('forecast_offset' in lastConfig(editor), false, 'a cleared offset unsets the key');
     fireValue(field(editor, 'click_action'), 'tooltip');
     assert.equal(lastConfig(editor).click_action, 'tooltip');
     fireValue(field(editor, 'unit_generic'), 'ppm');

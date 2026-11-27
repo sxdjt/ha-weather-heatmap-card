@@ -19,6 +19,7 @@ describe('setConfig validation', () => {
       [{ days: 400 }, /days must be between/], [{ forecast_days: 9 }, /forecast_days must be an integer/],
       [{ forecast_entity: 'weather.x', card_type: 'humidity' }, /only supported when card_type is temperature/],
       [{ forecast_type: 'weekly' }, /forecast_type must be/], [{ forecast_dim: 2 }, /forecast_dim must be/],
+      [{ forecast_offset: '-2' }, /forecast_offset must be/], [{ forecast_offset: NaN }, /forecast_offset must be/], [{ forecast_offset: Infinity }, /forecast_offset must be/],
       [{ color_interpolation: 'cmyk' }, /color_interpolation must be/], [{ data_source: 'db' }, /data_source must be/],
       [{ decimals: 3 }, /decimals must be between/], [{ start_hour: 24 }, /start_hour must be/], [{ end_hour: 1.5 }, /end_hour must be/],
       [{ statistic_type: 'median' }, /statistic_type must be/], [{ card_type: 'windspeed', statistic_type: 'median' }, /statistic_type must be/],
@@ -235,6 +236,36 @@ describe('forecast', () => {
     assert.equal(card.shadowRoot.querySelectorAll('.cell.forecast-blank').length > 0, true);
     forecastCell.click();
     assert.deepEqual(card.events.at(-1), { entityId: 'weather.home' });
+  });
+
+  it('forecast_offset shifts daily high/low; a missing value stays missing; measured values are unchanged', async () => {
+    quiet();
+    const hass = tempHass({ forecast: { 'weather.home': [
+      { datetime: day(1), temperature: 72, templow: 50.5, condition: 'sunny' },
+      { datetime: day(2), temperature: null, templow: 45 },
+    ] } });
+    const card = await makeCard({ entity: T, days: 2, forecast_entity: 'weather.home', forecast_days: 3, forecast_offset: -2.5 }, hass);
+    assert.equal(card._config.forecast_offset, -2.5);
+    const forecast = Object.values(card._forecastData);
+    assert.deepEqual(forecast.map((f) => [f.high, f.low]), [[69.5, 48], [null, 42.5]]);
+    assert.match(card.shadowRoot.querySelector('.forecast-row').innerHTML, /high 69.5°, low 48.0°/);
+    assert.ok(cells(card).some((c) => !c.isForecast && c.temperature === 65), 'history is not offset');
+    const plain = await makeCard({ entity: T, days: 2, forecast_entity: 'weather.home' }, hass);
+    assert.equal(plain._config.forecast_offset, 0);
+  });
+
+  it('forecast_offset shifts hourly forecast cells before averaging and coloring', async () => {
+    quiet();
+    mock.timers.enable({ apis: ['Date'], now: new Date('2026-01-15T09:30:00Z').getTime() });
+    const hour = (d, h) => new Date(Date.UTC(2026, 0, 15 + d, h)).toISOString();
+    const hass = tempHass({ forecast: { 'weather.home': [
+      { datetime: hour(1, 0), temperature: 40 }, { datetime: hour(1, 1), temperature: 44 },
+    ] } });
+    const card = await makeCard({ entity: T, days: 1, forecast_entity: 'weather.home', forecast_type: 'hourly', forecast_days: 1, forecast_offset: 3 }, hass);
+    assert.equal(card._forecastHourly['2026-01-16_0'].temperature, 45);
+    assert.ok(cells(card).some((c) => c.isForecast && c.temperature === 45), 'the adjusted value reaches the grid');
+    const shown = [...card.shadowRoot.querySelectorAll('.cell.forecast .value')].map((el) => el.textContent);
+    assert.ok(shown.includes('45.0'), `rendered forecast values: ${shown.join(', ')}`);
   });
 
   it('a forecast failure keeps the heatmap; browsing back hides the forecast', async () => {

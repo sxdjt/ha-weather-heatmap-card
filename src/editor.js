@@ -78,6 +78,7 @@ const EDITOR_DEFAULTS = {
   forecast_days: 3,
   forecast_type: 'daily',
   forecast_dim: 0.5,
+  forecast_offset: 0,
   direction_entity: '',
   show_direction: true,
   direction_format: 'arrow',
@@ -232,6 +233,7 @@ export class SensorHeatmapCardEditor extends HTMLElement {
         options: { daily: 'Daily (high/low row)', hourly: 'Hourly (dimmed cells)' }, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_days', label: 'Forecast Days', min: 1, max: 7, showWhen: 'temperature' },
       { type: 'number', key: 'forecast_dim', label: 'Forecast Dim (0 = none, 1 = invisible)', min: 0, max: 1, step: 0.1, showWhen: 'temperature' },
+      { type: 'number', key: 'forecast_offset', label: 'Forecast Offset (added to forecast temperatures)', step: 0.1, showWhen: 'temperature' },
 
       // Generic-only fields
       { type: 'text', key: 'unit_generic', label: 'Unit (e.g. %, ppm, lux)', showWhen: 'generic' },

@@ -8,6 +8,7 @@
 
 ### Added
 
+- `forecast_offset` (and a Forecast Offset field in the editor) adds a fixed amount to every forecast temperature, daily high/low and hourly, before display and coloring. Use it when the forecast is always warmer or colder than your sensor, e.g. `-2`. Measured values are unchanged. Contributed by @zanac in PR #7 (proposed there as `temperature_adjustment`).
 - `show_title` (and a Show Title switch in the editor) hides the header title. An empty `title` could not, because it falls back to the default title.
 
 ### Changed
