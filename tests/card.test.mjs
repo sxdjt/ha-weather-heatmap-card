@@ -1,6 +1,6 @@
 import { describe, it, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { Card, makeCard, makeHass, sensor, statRow, content, text, settle, cleanup, window } from './helpers/env.mjs';
+import { Card, makeCard, makeHass, sensor, statRow, content, text, settle, cleanup, pinClock, window } from './helpers/env.mjs';
 
 afterEach(() => { mock.restoreAll(); mock.timers.reset(); cleanup(); });
 const quiet = () => { for (const m of ['log', 'warn', 'error']) mock.method(console, m, () => {}); };
@@ -104,6 +104,7 @@ describe('review sweep findings', () => {
   // W13 (B7/B8): the Min/Max toggle on statistics data uses the hourly means
   it('Min and Max on statistics data use the hourly min and max', async () => {
     quiet();
+    pinClock();
     const card = await makeCard({ entity: 'sensor.t', days: 1, time_interval: 1 }, temp());
     card._activeAggregationMode = 'max';
     card._processData();
@@ -118,6 +119,7 @@ describe('review sweep findings', () => {
   // statistics (no state_class) shows an empty card with the default data_source
   it('data_source auto falls back to history when there are no statistics', async () => {
     quiet();
+    pinClock();
     const now = new Date(Date.now() - 3 * 3600000).toISOString();
     const hass = makeHass({ states: { 'sensor.t': sensor(70) }, history: { 'sensor.t': [{ state: '66', last_changed: now }] } });
     const card = await makeCard({ entity: 'sensor.t', days: 1 }, hass);
@@ -137,6 +139,7 @@ describe('review sweep findings', () => {
 
   it('auto falls back to history for a wind card too', async () => {
     quiet();
+    pinClock();
     const at = new Date(Date.now() - 3 * 3600000).toISOString();
     const hass = makeHass({ states: { 'sensor.w': sensor(5) }, history: { 'sensor.w': [{ state: '12', last_changed: at }] } });
     const card = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', days: 1 }, hass);

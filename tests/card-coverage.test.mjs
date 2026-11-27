@@ -2,7 +2,7 @@
 // forecast, processing, rendering variants and interaction.
 import { describe, it, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { Card, makeCard, makeHass, sensor, statRow, content, text, settle, cleanup, window, document } from './helpers/env.mjs';
+import { Card, makeCard, makeHass, sensor, statRow, content, text, settle, cleanup, pinClock, window, document } from './helpers/env.mjs';
 
 afterEach(() => { mock.restoreAll(); mock.timers.reset(); cleanup(); });
 const quiet = () => { for (const m of ['log', 'warn', 'error']) mock.method(console, m, () => {}); };
@@ -121,6 +121,7 @@ describe('card picker, sizing and lifecycle', () => {
 describe('fetch paths', () => {
   it('history API: temperature, and wind with direction', async () => {
     quiet();
+    pinClock();
     const at = new Date(Date.now() - 3 * 3600000).toISOString();
     const temp = makeHass({ states: { [T]: sensor(70) }, history: { [T]: [{ state: '61', last_changed: at }, { state: 'bad', last_updated: at }] } });
     const tc = await makeCard({ entity: T, days: 1, data_source: 'history' }, temp);
@@ -136,6 +137,7 @@ describe('fetch paths', () => {
 
   it('statistics: wind speed with direction, and empty rows filtered', async () => {
     quiet();
+    pinClock();
     const hass = makeHass({ states: { 'sensor.w': sensor(5), 'sensor.d': sensor('x') },
       stats: { 'sensor.w': [statRow(3, { mean: 8, min: 2, max: 15 }), { start: statRow(4).start, mean: null, min: null, max: null }], 'sensor.d': [{ start: statRow(3).start, mean: 270 }, { start: statRow(5).start, mean: null }] } });
     const card = await makeCard({ entity: 'sensor.w', card_type: 'windspeed', direction_entity: 'sensor.d', days: 1 }, hass);
@@ -444,7 +446,7 @@ describe('interaction', () => {
 
   it('click actions: tooltip (temperature, wind, partial, filled), none, no-data cells ignored', async () => {
     quiet();
-    mock.timers.enable({ apis: ['setTimeout'] });
+    pinClock(['setTimeout']);
     const card = await makeCard({ entity: T, days: 1, click_action: 'tooltip' }, tempHass());
     const valueCell = card.shadowRoot.querySelector('.data-grid .cell:not(.no-data):not(.partial)');
     valueCell.click();
@@ -549,6 +551,7 @@ describe('remaining branches', () => {
 
   it('forecast row without degree symbol and with a missing low; filled cells dimmed by default', async () => {
     quiet();
+    pinClock();
     const tomorrow = new Date(Date.now() + 86400000);
     tomorrow.setHours(12, 0, 0, 0);
     // Two readings today with a gap between them, at fixed hours: rows relative to now

@@ -11,8 +11,19 @@
 // which walks the whole happy-dom window without end (see tests/README.md).
 
 import { Window } from 'happy-dom';
+import { mock } from 'node:test';
 
 process.env.TZ = 'UTC';
+
+// Freeze the clock at 12:00 UTC. A fixture that places readings relative to now
+// ("3 hours ago") with `days: 1` loses them to yesterday's column in the first hours
+// of a UTC day (00:00-05:00 UTC is evening in US time zones). Call it first in such a
+// test, before building fixtures; `apis` adds other timers to mock (e.g. setTimeout).
+// The test file's afterEach must call mock.timers.reset().
+export const NOON = Date.UTC(2026, 0, 15, 12);
+export function pinClock(apis = []) {
+  mock.timers.enable({ apis: ['Date', ...apis], now: NOON });
+}
 
 export const window = new Window({
   url: 'http://localhost:8123/lovelace/0',
