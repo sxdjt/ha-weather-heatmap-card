@@ -18,6 +18,7 @@
 
 ### Fixed
 
+- Visual editor: after switching to the code editor and back, every field showed its old value and Add Threshold added a row that never appeared. Home Assistant detaches the visual editor while the code editor is shown and re-attaches the same editor afterwards; the editor dropped its list of fields when detached.
 - Paging (or saving an edit) while the card was loading did nothing, and the data being loaded was then drawn under the new date range. The new range is now fetched once the current load ends, and the old answer is not drawn.
 - Wind cards use the color scale for the sensor's unit (km/h, m/s, knots) from the first render. Home Assistant sets the card's state before showing it, and the unit was only detected afterwards, so the mph scale was used until the next refresh (up to 5 minutes).
 - `data_source: auto` (the default) falls back to the recorder history when the sensor has no long-term statistics (no `state_class`). The card showed an empty grid.

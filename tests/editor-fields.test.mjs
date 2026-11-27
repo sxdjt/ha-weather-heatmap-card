@@ -143,15 +143,26 @@ describe('threshold rows', () => {
     assert.equal(color.value, 'red');
   });
 
-  it('no thresholds in the config: Add starts the list; disconnect drops the rows', async () => {
+  // Found on ha-test (2026-11-26): HA detaches the visual editor while the code editor is
+  // shown and re-attaches the same element afterwards. disconnectedCallback emptied
+  // this.fields and the threshold list, so every field kept its old value and Add
+  // Threshold added a row that never appeared.
+  it('after a YAML round trip (detach, re-attach, setConfig) fields and threshold rows stay live', async () => {
+    const editor = await makeEditor({ entity: 'sensor.t', days: 5 });
+    editor.remove();
+    document.body.appendChild(editor);
+    await editor.setConfig({ entity: 'sensor.t', days: 7 });
+    assert.equal(field(editor, 'days').value, 7);
+    editor._addThresholdButton.click();
+    assert.equal(lastConfig(editor).color_thresholds.length, 1);
+    assert.equal(editor.container_threshold.children.length, 1);
+  });
+
+  it('no thresholds in the config: Add starts the list', async () => {
     const editor = await makeEditor({ entity: 'sensor.t' });
     editor._addThresholdButton.click();
     assert.equal(lastConfig(editor).color_thresholds.length, 1);
     editor._updateThreshold(0, 'value', 3);
-    editor.remove();
-    assert.equal(editor.container_threshold, null);
-    editor._syncThresholdEditor();
-    editor._refreshThresholdEditor();
     const empty = await makeEditor({ entity: 'sensor.t' });
     empty._config = { entity: 'sensor.t' };
     empty._updateThreshold(0, 'value', 5);

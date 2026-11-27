@@ -1,4 +1,4 @@
-/* Last modified: 26-Nov-2026 19:13 */
+/* Last modified: 26-Nov-2026 19:59 */
 // Card CSS styles
 
 /**
@@ -3796,7 +3796,6 @@ class SensorHeatmapCardEditor extends HTMLElement {
 
   // Rebuild rows only when the number of thresholds changed; otherwise update in place
   _syncThresholdEditor() {
-    if (!this.container_threshold) return;
     const thresholds = this._config.color_thresholds || [];
     const items = this.container_threshold.children;
     if (items.length !== thresholds.length) {
@@ -3807,16 +3806,10 @@ class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _refreshThresholdEditor() {
-    if (!this.container_threshold) return;
     while (this.container_threshold.firstChild) {
       this.container_threshold.removeChild(this.container_threshold.firstChild);
     }
     this._createThresholdEditor();
-  }
-
-  disconnectedCallback() {
-    this.fields = {};
-    this.container_threshold = null;
   }
 }
 

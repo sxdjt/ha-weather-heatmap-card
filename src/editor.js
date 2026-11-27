@@ -647,7 +647,6 @@ export class SensorHeatmapCardEditor extends HTMLElement {
 
   // Rebuild rows only when the number of thresholds changed; otherwise update in place
   _syncThresholdEditor() {
-    if (!this.container_threshold) return;
     const thresholds = this._config.color_thresholds || [];
     const items = this.container_threshold.children;
     if (items.length !== thresholds.length) {
@@ -658,15 +657,9 @@ export class SensorHeatmapCardEditor extends HTMLElement {
   }
 
   _refreshThresholdEditor() {
-    if (!this.container_threshold) return;
     while (this.container_threshold.firstChild) {
       this.container_threshold.removeChild(this.container_threshold.firstChild);
     }
     this._createThresholdEditor();
-  }
-
-  disconnectedCallback() {
-    this.fields = {};
-    this.container_threshold = null;
   }
 }
