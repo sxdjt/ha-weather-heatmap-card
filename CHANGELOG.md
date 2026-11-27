@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2026.11.26-beta.1 (2026-11-26, pre-release)
+
 ### Removed
 
 - `compact`: it has done nothing since 2026.5 (the sizing override was removed because it ignored the configured cell sizes), so it is removed from the editor and the docs. Configs that still set it keep working; the key is ignored. Use the cell size options and `compact_header`.
